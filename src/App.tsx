@@ -1,5 +1,2 @@
 import SclassRecipeAppFinal from "./SclassRecipeAppFinal";
-
-export default function App() {
-  return <SclassRecipeAppFinal />;
-}
+export default function App(){ return <SclassRecipeAppFinal />; }

@@ -46,6 +46,18 @@ type SavedBuild = {
   topping: string;
 };
 
+
+const BRAND = {
+  name: "Sclass Fitness",
+  appName: "Sclass Recipe Vault",
+  tag: "Luxury performance recipes",
+  logos: {
+    main: "/logo-main.svg",
+    mark: "/logo-mark.svg",
+    online: "/logo-online.svg",
+  },
+};
+
 const db: Record<string, { unit: string; cal: number; p: number; c: number; f: number }> = {
   "whey isolate": { unit: "g", cal: 3.8, p: 0.84, c: 0.06, f: 0.03 },
   "oat flour": { unit: "g", cal: 4.04, p: 0.14, c: 0.68, f: 0.09 },
@@ -858,8 +870,9 @@ function exportBrandedHTML(
     </head>
     <body>
       <div class="wrap">
+        <div style="text-align:center;margin-bottom:18px;"><img src="${window.location.origin}/logo-main.svg" alt="Sclass Fitness" style="height:64px;max-width:100%;object-fit:contain;" /></div>
         <h1>${title}</h1>
-        <div class="small">Sclass Master Edition • ${goal}</div>
+        <div class="small">${BRAND.name} • ${goal}</div>
 
         <div class="card">
           <div class="pill">Flavor: ${flavor}</div>
@@ -888,59 +901,6 @@ function exportBrandedHTML(
   w.focus();
 }
 
-
-
-function joinIngredientLines(items: Ingredient[]) {
-  if (!items || items.length === 0) return "None";
-  return items.map((item) => ingredientLine(item)).join(" + ");
-}
-
-function buildSectionIntro(section: "flavor" | "swirl" | "topping", label: string, items: Ingredient[]) {
-  if (!items || items.length === 0) {
-    if (section === "flavor") return `Selected flavor: ${label} (no extra ingredients).`;
-    if (section === "swirl") return `Selected swirl / core: ${label} (no extra ingredients).`;
-    return `Selected topping: ${label} (no extra ingredients).`;
-  }
-
-  if (section === "flavor") return `Flavor ingredients for ${label}: ${joinIngredientLines(items)}.`;
-  if (section === "swirl") return `Swirl / core ingredients for ${label}: ${joinIngredientLines(items)}.`;
-  return `Topping ingredients for ${label}: ${joinIngredientLines(items)}.`;
-}
-
-function makeCombinedMethod(
-  baseMethod: string[],
-  flavor: string,
-  swirl: string,
-  topping: string,
-  flavorItems: Ingredient[],
-  swirlItems: Ingredient[],
-  toppingItems: Ingredient[],
-  flavorMethodItems: string[],
-  swirlMethodItems: string[],
-  toppingMethodItems: string[]
-) {
-  const items: string[] = [];
-
-  items.push(...baseMethod);
-  items.push(buildSectionIntro("flavor", flavor, flavorItems));
-  items.push(...flavorMethodItems);
-
-  if (swirl !== "None" || (swirlItems && swirlItems.length > 0)) {
-    items.push(buildSectionIntro("swirl", swirl, swirlItems));
-    items.push(...swirlMethodItems);
-  } else {
-    items.push("No swirl or core is selected for this build, so continue once the base && flavor are ready.");
-  }
-
-  if (topping !== "None" || (toppingItems && toppingItems.length > 0)) {
-    items.push(buildSectionIntro("topping", topping, toppingItems));
-    items.push(...toppingMethodItems);
-  } else {
-    items.push("No topping is selected for this build, so serve it plain once the texture is fully set.");
-  }
-
-  return items;
-}
 
 function getRecipeType(recipeName: string) {
   const n = recipeName.toLowerCase();
@@ -1119,6 +1079,7 @@ export default function SclassRecipeAppFinal() {
   const [pack, setPack] = useState<string>("All Packs");
   const [clientMode, setClientMode] = useState(false);
   const [savedBuilds, setSavedBuilds] = useState<SavedBuild[]>([]);
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     try {
@@ -1130,6 +1091,12 @@ export default function SclassRecipeAppFinal() {
   useEffect(() => {
     localStorage.setItem("sclass-saved-builds", JSON.stringify(savedBuilds));
   }, [savedBuilds]);
+
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowSplash(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const filteredRecipes = useMemo(() => {
     return recipes.filter((r) => {
@@ -1148,25 +1115,76 @@ export default function SclassRecipeAppFinal() {
   const packOptions = ["All Packs", ...Object.keys(flavorPacks)];
 
   return (
+    <div className="relative min-h-screen bg-neutral-950 text-white">
+      {showSplash && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.18),_transparent_30%),linear-gradient(180deg,#0b0b0b,#050505)] px-6">
+          <div className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-yellow-700/30 bg-neutral-950/95 shadow-2xl">
+            <div className="border-b border-yellow-700/15 p-8 text-center">
+              <div className="mb-5 flex justify-center">
+                <img src={BRAND.logos.online} alt="Sclass Online Coaching" className="h-16 w-auto object-contain sm:h-20" />
+              </div>
+              <div className="text-[11px] uppercase tracking-[0.35em] text-yellow-500">Private Member Access</div>
+              <h2 className="mt-3 text-3xl font-bold text-yellow-300">Welcome to the Sclass Vault</h2>
+              <p className="mt-3 text-sm text-neutral-300">
+                Luxury coaching feel. Premium recipes. Built for your Sclass Fitness brand.
+              </p>
+            </div>
+
+            <div className="space-y-4 p-8">
+              <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/80 p-4">
+                <div className="mb-2 text-xs uppercase tracking-[0.28em] text-neutral-500">Member Email</div>
+                <div className="h-12 rounded-2xl border border-yellow-700/20 bg-neutral-950/80 px-4 flex items-center text-neutral-500">
+                  coach@sclassfitness.com
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/80 p-4">
+                <div className="mb-2 text-xs uppercase tracking-[0.28em] text-neutral-500">Access Code</div>
+                <div className="h-12 rounded-2xl border border-yellow-700/20 bg-neutral-950/80 px-4 flex items-center text-neutral-500">
+                  ••••••••
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowSplash(false)}
+                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-yellow-500 px-5 font-semibold text-black transition hover:bg-yellow-400"
+              >
+                Enter Sclass Recipe Vault
+              </button>
+
+              <div className="text-center text-xs uppercase tracking-[0.28em] text-neutral-500">
+                Coach Sclass Master Edition
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="min-h-screen bg-neutral-950 text-white">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 md:px-8">
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="overflow-hidden rounded-3xl border border-yellow-700/40 bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.16),_transparent_28%),linear-gradient(180deg,rgba(23,23,23,1),rgba(10,10,10,1))] shadow-2xl">
+          <div className="relative overflow-hidden rounded-3xl border border-yellow-700/40 bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.16),_transparent_28%),linear-gradient(180deg,rgba(23,23,23,1),rgba(10,10,10,1))] shadow-2xl">
+            <img src={BRAND.logos.mark} alt="" className="pointer-events-none absolute right-4 top-4 h-24 w-24 opacity-[0.07] sm:h-28 sm:w-28" />
             <div className="border-b border-yellow-700/20 px-5 py-6 sm:px-8 sm:py-8">
               <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
                 <div className="max-w-3xl">
-                  <div className="mb-2 text-[11px] uppercase tracking-[0.35em] text-yellow-500">Sclass Master Edition</div>
-                  <h1 className="text-3xl font-bold leading-tight text-yellow-300 sm:text-4xl md:text-5xl">
-                    {clientMode ? "Client Recipe Builder" : "Final Recipe App"}
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm text-neutral-300 sm:text-base">
-                    Elite mobile-first recipe builder with dynamic macros, flavor packs, saved builds, branded export,
-                    and simple client mode.
-                  </p>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <img src={BRAND.logos.main} alt={BRAND.name} className="h-14 w-auto object-contain sm:h-16" />
+                    <div>
+                      <div className="mb-2 text-[11px] uppercase tracking-[0.35em] text-yellow-500">{BRAND.tag}</div>
+                      <h1 className="text-3xl font-bold leading-tight text-yellow-300 sm:text-4xl md:text-5xl">
+                        {clientMode ? "Sclass Sclass Client Recipe Builder" : BRAND.appName}
+                      </h1>
+                      <p className="mt-3 max-w-2xl text-sm text-neutral-300 sm:text-base">
+                        Premium branded recipe system with dynamic macros, flavor packs, saved builds, branded export,
+                        and a simplified client mode.
+                      </p>
+                    </div>
+                  </div>
 
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <Badge icon={<BookOpen className="h-3.5 w-3.5" />} label="Cookbook Builder" />
-                    <Badge icon={<Wand2 className="h-3.5 w-3.5" />} label="Flavor Expansion" />
+                    <Badge icon={<BookOpen className="h-3.5 w-3.5" />} label="Sclass Cookbook Builder" />
+                    <Badge icon={<Wand2 className="h-3.5 w-3.5" />} label="Luxury Flavor Expansion" />
                     <Badge icon={<Calculator className="h-3.5 w-3.5" />} label="Auto Macros" />
                   </div>
                 </div>
@@ -1245,7 +1263,7 @@ export default function SclassRecipeAppFinal() {
 
           {!clientMode && (
             <aside className="space-y-6">
-              <Panel title="Saved Builds" icon={<Save className="h-5 w-5" />}>
+              <Panel title="Sclass Saved Builds" icon={<Save className="h-5 w-5" />}>
                 <div className="space-y-3">
                   {savedBuilds.length === 0 ? (
                     <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/60 p-4 text-sm text-neutral-400">
@@ -1273,6 +1291,21 @@ export default function SclassRecipeAppFinal() {
             </aside>
           )}
         </div>
+        <div className="mt-8 rounded-3xl border border-yellow-700/25 bg-neutral-950/90 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <img src={BRAND.logos.online} alt="Sclass Online Coaching" className="h-12 w-auto object-contain opacity-95" />
+              <div>
+                <div className="text-sm font-semibold text-yellow-300">Built for {BRAND.name}</div>
+                <div className="text-sm text-neutral-400">Luxury coaching aesthetic • premium recipe delivery • branded client experience • splash screen included</div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/80 px-4 py-3 text-xs uppercase tracking-[0.28em] text-neutral-400">
+              Coach Sclass Master Edition
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -1358,44 +1391,9 @@ function RecipeCard({
 
   const detailTitle = clientMode ? recipe.clientName : recipe.name;
   const detailedGuide = getDetailedGuide(recipe.name, flavor, swirl, topping);
-
-  const flavorMethodItems = [
-    buildSectionIntro("flavor", flavor, flavorList),
-    ...(recipe.flavorHow?.[flavor] || detailedGuide.flavorGuide),
-  ];
-
-  const swirlMethodItems = swirl === "None"
-    ? [
-        buildSectionIntro("swirl", swirl, swirlList),
-        ...detailedGuide.swirlGuide,
-      ]
-    : [
-        buildSectionIntro("swirl", swirl, swirlList),
-        ...(recipe.swirlBuild?.[swirl] || detailedGuide.swirlGuide),
-      ];
-
-  const toppingMethodItems = topping === "None"
-    ? [
-        buildSectionIntro("topping", topping, toppingList),
-        ...detailedGuide.toppingGuide,
-      ]
-    : [
-        buildSectionIntro("topping", topping, toppingList),
-        ...(recipe.toppingHow?.[topping] || detailedGuide.toppingGuide),
-      ];
-
-  const combinedMethodItems = makeCombinedMethod(
-    recipe.method,
-    flavor,
-    swirl,
-    topping,
-    flavorList,
-    swirlList,
-    toppingList,
-    flavorMethodItems.slice(1),
-    swirlMethodItems.slice(1),
-    toppingMethodItems.slice(1)
-  );
+  const flavorMethodItems = recipe.flavorHow?.[flavor] || detailedGuide.flavorGuide;
+  const swirlMethodItems = recipe.swirlBuild?.[swirl] || detailedGuide.swirlGuide;
+  const toppingMethodItems = recipe.toppingHow?.[topping] || detailedGuide.toppingGuide;
 
   const saveBuild = () => {
     const newBuild: SavedBuild = {
@@ -1438,9 +1436,12 @@ function RecipeCard({
         <div className="border-b border-yellow-700/20 bg-gradient-to-r from-yellow-900/10 to-transparent p-5 sm:p-6">
           <div className="mb-2 text-[10px] uppercase tracking-[0.28em] text-yellow-500">{recipe.category}</div>
           <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-yellow-300">{detailTitle}</h2>
-              <div className="mt-1 text-sm text-neutral-400">Servings: {recipe.servings}</div>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-yellow-300">{detailTitle}</h2>
+                <div className="mt-1 text-sm text-neutral-400">Servings: {recipe.servings}</div>
+              </div>
+              <img src={BRAND.logos.mark} alt="" className="h-10 w-10 opacity-70" />
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -1504,10 +1505,10 @@ function RecipeCard({
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <Panel title="Main Detailed Instructions">
+            <Panel title="Main Method">
               <ol className="list-decimal space-y-3 pl-5 text-sm text-neutral-200">
-                {combinedMethodItems.map((step, idx) => (
-                  <li key={`${recipe.name}-${idx}-${step}`}>{step}</li>
+                {recipe.method.map((step) => (
+                  <li key={step}>{step}</li>
                 ))}
               </ol>
             </Panel>
@@ -1550,9 +1551,9 @@ function RecipeCard({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <Panel title="Detailed Build Guide">
               <div className="space-y-5 text-sm text-neutral-200">
-                <GuideSection title={`How to add the flavor: ${flavor}`} items={flavorMethodItems} />
-                <GuideSection title={swirl === "None" ? "Swirl / core guide" : `How to build the ${swirl}`} items={swirlMethodItems} />
-                <GuideSection title={topping === "None" ? "Topping guide" : `How to finish with ${topping}`} items={toppingMethodItems} />
+                <GuideSection title={`How to add the flavor: ${flavor}`} items={detailedGuide.flavorGuide} />
+                <GuideSection title={swirl === "None" ? "Swirl / core guide" : `How to build the ${swirl}`} items={detailedGuide.swirlGuide} />
+                <GuideSection title={topping === "None" ? "Topping guide" : `How to finish with ${topping}`} items={detailedGuide.toppingGuide} />
               </div>
             </Panel>
 

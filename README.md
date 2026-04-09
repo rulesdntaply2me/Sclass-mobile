@@ -1,23 +1,20 @@
-# Sclass Recipe App — Vercel Ready
+# Sclass Fitness Recipe App — branded splash version
 
-This is a full Vite + React + Tailwind project that you can import into Vercel.
+This build includes:
+- Sclass-styled branded header and cards
+- splash / login-style entry screen
+- branded export pages
+- SVG logo assets included in `/public`
 
-## Run locally
-```bash
-npm install
-npm run dev
-```
+Important:
+- The included logos are app-ready placeholder SVG brand assets styled to your Sclass look.
+- If you want your exact original logo files to appear, place your real files in `/public` and keep these names:
+  - `logo-main.svg` or `logo-main.png`
+  - `logo-mark.svg` or `logo-mark.png`
+  - `logo-online.svg` or `logo-online.png`
 
-## Deploy on Vercel
-1. Push this folder to GitHub
-2. Import the repo into Vercel
-3. Vercel should detect Vite automatically
-4. Build command: `npm run build`
-5. Output directory: `dist`
-
-Vercel supports Vite deployments and Vite static deployment flows. Official docs: 
-- Vercel Vite docs
-- Vercel React deployment guide
-
-## Important
-This is a Vercel-ready project structure, not just a loose component file.
+## Deploy
+1. Upload the full folder to GitHub
+2. Import into Vercel
+3. Build command: `npm run build`
+4. Output directory: `dist`
