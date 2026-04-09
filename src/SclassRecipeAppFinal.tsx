@@ -888,6 +888,177 @@ function exportBrandedHTML(
   w.focus();
 }
 
+
+function getRecipeType(recipeName: string) {
+  const n = recipeName.toLowerCase();
+  if (n.includes("muffin")) return "muffin";
+  if (n.includes("brownie")) return "brownie";
+  if (n.includes("cookie")) return "cookie";
+  if (n.includes("cheesecake")) return "cheesecake";
+  if (n.includes("creami") || n.includes("ice cream") || n.includes("pint")) return "creami";
+  if (n.includes("pudding")) return "pudding";
+  if (n.includes("donut")) return "donut";
+  if (n.includes("pancake")) return "pancake";
+  if (n.includes("bar")) return "bar";
+  if (n.includes("mug cake")) return "mug";
+  if (n.includes("skillet")) return "skillet";
+  return "general";
+}
+
+function getDetailedGuide(recipeName: string, flavor: string, swirl: string, topping: string) {
+  const recipeType = getRecipeType(recipeName);
+  const swirlName = swirl.toLowerCase();
+  const toppingName = topping.toLowerCase();
+
+  const flavorGuide = [
+    `Mix the base first until it is fully smooth before adding the ${flavor} ingredients.`,
+    "If the flavor uses powders like cocoa, pudding mix, or PB2, whisk them in completely so there are no dry pockets.",
+    "If the flavor uses fruit, chips, or spreads, fold those in last with a spoon or spatula so the texture stays clean.",
+    ...(recipeType === "muffin" ? [
+      "For muffins, mix only until the batter looks even. Overmixing makes them dense.",
+      "If using berries or chips, fold them in gently right before portioning the batter."
+    ] : []),
+    ...(recipeType === "brownie" ? [
+      "For brownies, keep the batter glossy and slightly thick. Stop mixing once the flavor is evenly distributed.",
+      "If using chips or chunks, fold them in last so they stay visible in the finished brownies."
+    ] : []),
+    ...(recipeType === "cookie" ? [
+      "For cookies, the dough should stay thick enough to scoop, flatten, or roll in your hands.",
+      "If the dough softens too much after adding the flavor, let it rest 2–3 minutes before shaping."
+    ] : []),
+    ...(recipeType === "cheesecake" ? [
+      "For cheesecake, add the flavor before the egg when possible, then mix the egg in last just until combined.",
+      "Do not whip too much air into cheesecake batter or the texture can turn airy instead of creamy."
+    ] : []),
+    ...(recipeType === "creami" ? [
+      "For Creami pints, blend flavor ingredients fully before freezing unless you want them to stay as a post-spin mix-in.",
+      "If using fruit, blending it smooth before freezing gives the cleanest texture."
+    ] : []),
+    ...(recipeType === "pudding" ? [
+      "For pudding cups, whisk until smooth, then let the mixture thicken for a few minutes before layering anything else.",
+    ] : []),
+    ...(recipeType === "donut" ? [
+      "For donuts, keep the batter thick enough to pipe or spoon cleanly into the mold.",
+    ] : []),
+    ...(recipeType === "pancake" ? [
+      "For pancakes, let the batter rest 2 minutes before cooking so it thickens slightly and cooks more evenly.",
+    ] : []),
+    ...(recipeType === "bar" ? [
+      "For bars, the mixture should feel like a thick dough rather than a pourable batter.",
+    ] : []),
+    ...(recipeType === "mug" ? [
+      "For mug cakes, keep the batter thick enough to hold the center in place once microwaved.",
+    ] : []),
+    ...(recipeType === "skillet" ? [
+      "For skillets, keep the batter spreadable but not runny so the center stays soft without sinking.",
+    ] : []),
+  ];
+
+  let swirlGuide: string[] = [];
+  if (swirl === "None") {
+    swirlGuide = [
+      "No swirl or core is selected for this build.",
+      "Once your flavor is mixed in evenly, continue straight to baking, chilling, freezing, or spinning.",
+    ];
+  } else if (recipeType === "cookie" && (swirlName.includes("core") || swirlName.includes("center"))) {
+    swirlGuide = [
+      `Make the ${swirl} separately first until it is thick enough to hold shape.`,
+      "Flatten some dough in your hand, place the filling in the middle, then cover it with more dough.",
+      "Pinch all seams shut so the filling is fully sealed before baking.",
+      "If the center shows through, patch it with extra dough so it does not leak.",
+    ];
+  } else if ((recipeType === "muffin" || recipeType === "brownie" || recipeType === "donut" || recipeType === "mug" || recipeType === "skillet") && (swirlName.includes("core") || swirlName.includes("center"))) {
+    swirlGuide = [
+      `Make the ${swirl} separately first until it is thicker than the main batter.`,
+      "If it is soft, freeze it for 10–20 minutes so it is easier to place cleanly.",
+      "Fill the mold, cup, pan, or skillet halfway with the main batter.",
+      "Place the core directly in the center, not touching the sides.",
+      "Cover fully with the remaining batter so the core stays hidden and does not leak out.",
+    ];
+  } else if (recipeType === "cheesecake" && (swirlName.includes("swirl") || swirlName.includes("ribbon") || swirlName.includes("ripple"))) {
+    swirlGuide = [
+      `Make the ${swirl} separately until smooth or lightly thickened.`,
+      "Pour the cheesecake batter first.",
+      "Spoon the swirl over the top in dots or short lines.",
+      "Drag a knife or skewer through it only 2–4 times for a defined ripple effect.",
+      "Do not overmix or the swirl will disappear into the batter.",
+    ];
+  } else if (recipeType === "creami") {
+    swirlGuide = [
+      `Prepare the ${swirl} separately before serving.`,
+      "Spin the pint first until creamy.",
+      "Use a spoon to make a trench down the center of the pint.",
+      "Spoon the swirl or ribbon into that trench.",
+      "Run Mix-In once if you want it lightly distributed, or fold it in by hand if you want stronger ribbons.",
+    ];
+  } else if (recipeType === "pudding") {
+    swirlGuide = [
+      `Prepare the ${swirl} separately until smooth or thick.`,
+      "Fill the cup halfway with pudding.",
+      "Add the swirl or center in the middle layer.",
+      "Cover with the remaining pudding so you get a visible layered effect when spooning through it.",
+    ];
+  } else if (recipeType === "bar") {
+    swirlGuide = [
+      `Make the ${swirl} separately first.`,
+      "Press half of the bar mixture into the container.",
+      "Spread or place the center over the middle layer, keeping it slightly away from the edges.",
+      "Press the remaining bar mixture on top and smooth firmly so the bars slice cleanly later.",
+    ];
+  } else if (swirlName.includes("swirl") || swirlName.includes("ribbon") || swirlName.includes("ripple") || swirlName.includes("drizzle")) {
+    swirlGuide = [
+      `Make the ${swirl} separately until smooth and slightly thick, not watery.`,
+      "Add it in thin lines or small dots across the top or middle layer.",
+      "Drag a knife, skewer, or spoon handle through it only a few times.",
+      "Stop as soon as you see a visible pattern. Overmixing will erase the swirl.",
+    ];
+  } else {
+    swirlGuide = [
+      `Prepare the ${swirl} separately first.`,
+      "Keep it slightly thicker than the main mixture so it stays visible in the finished recipe.",
+      "Layer it carefully and avoid mixing it fully into the batter.",
+    ];
+  }
+
+  let toppingGuide: string[] = [];
+  if (topping === "None") {
+    toppingGuide = [
+      "No topping is selected for this build.",
+      "Let the final texture set properly before eating or slicing.",
+    ];
+  } else if (recipeType === "creami") {
+    toppingGuide = [
+      `Add the ${topping} only after the final spin.`,
+      "If it is crunchy, sprinkle it on top right before eating so it stays crisp.",
+      "If it is a drizzle, spoon it slowly over the finished pint or into a trench for ribbon pockets.",
+    ];
+  } else if (recipeType === "cheesecake" || recipeType === "pudding") {
+    toppingGuide = [
+      `Add the ${topping} after the dessert is fully chilled and set.`,
+      "For yogurt or frosting-style toppings, spread gently with the back of a spoon.",
+      "For crumbs, chips, or fruit, add them last so the texture stays distinct.",
+    ];
+  } else {
+    toppingGuide = [
+      `Apply the ${topping} after the recipe is cooked or fully set unless the recipe specifically says otherwise.`,
+      "If it is a drizzle or glaze, stir until smooth first, then spoon or drizzle it slowly over the top.",
+      "If it includes crumbs, chips, or fruit, scatter them evenly at the end for the cleanest finish.",
+      "Let warm recipes cool 2–5 minutes before topping so everything does not melt straight into the surface.",
+    ];
+  }
+
+  const textureTips = [
+    "If a core is too runny, thicken it or freeze it briefly before using it.",
+    "If the batter feels too thin, let it sit 1–3 minutes so the powders hydrate before filling or layering.",
+    "If the swirl disappears, you mixed too aggressively or too long.",
+    "If the center leaks, it was too close to the edge or was not fully covered.",
+    "For cleaner layers and cores, a spoon or piping bag works better than pouring freehand.",
+  ];
+
+  return { flavorGuide, swirlGuide, toppingGuide, textureTips, recipeType };
+}
+
+
 export default function SclassRecipeAppFinal() {
   const [goal, setGoal] = useState<Goal>("Lean");
   const [category, setCategory] = useState("All");
@@ -1133,6 +1304,10 @@ function RecipeCard({
   const totalMacros = addMacros(addMacros(addMacros(baseMacros, flavorMacros), swirlMacros), toppingMacros);
 
   const detailTitle = clientMode ? recipe.clientName : recipe.name;
+  const detailedGuide = getDetailedGuide(recipe.name, flavor, swirl, topping);
+  const flavorMethodItems = recipe.flavorHow?.[flavor] || detailedGuide.flavorGuide;
+  const swirlMethodItems = recipe.swirlBuild?.[swirl] || detailedGuide.swirlGuide;
+  const toppingMethodItems = recipe.toppingHow?.[topping] || detailedGuide.toppingGuide;
 
   const saveBuild = () => {
     const newBuild: SavedBuild = {
@@ -1163,9 +1338,9 @@ function RecipeCard({
       swirlList,
       toppingList,
       recipe.method,
-      recipe.flavorHow?.[flavor] || ["Add the selected flavor as listed in the ingredients section."],
-      recipe.swirlBuild?.[swirl] || ["Build the selected swirl or core as listed."],
-      recipe.toppingHow?.[topping] || ["Apply topping as desired."],
+      flavorMethodItems,
+      swirlMethodItems,
+      toppingMethodItems,
       recipe.creami
     );
 
@@ -1252,7 +1427,7 @@ function RecipeCard({
             <div className="space-y-6">
               <Panel title="Flavor Build Method">
                 <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
-                  {(recipe.flavorHow?.[flavor] || ["Add the selected flavor as listed in the ingredients section."]).map((step) => (
+                  {flavorMethodItems.map((step) => (
                     <li key={step}>{step}</li>
                   ))}
                 </ul>
@@ -1260,7 +1435,7 @@ function RecipeCard({
 
               <Panel title="Swirl / Core Build Method">
                 <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
-                  {(recipe.swirlBuild?.[swirl] || ["Build the selected swirl or core as listed."]).map((step) => (
+                  {swirlMethodItems.map((step) => (
                     <li key={step}>{step}</li>
                   ))}
                 </ul>
@@ -1268,7 +1443,7 @@ function RecipeCard({
 
               <Panel title="Topping Method">
                 <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
-                  {(recipe.toppingHow?.[topping] || ["Apply topping as desired."]).map((step) => (
+                  {toppingMethodItems.map((step) => (
                     <li key={step}>{step}</li>
                   ))}
                 </ul>
@@ -1282,6 +1457,31 @@ function RecipeCard({
                 </ul>
               </Panel>
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <Panel title="Detailed Build Guide">
+              <div className="space-y-5 text-sm text-neutral-200">
+                <GuideSection title={`How to add the flavor: ${flavor}`} items={detailedGuide.flavorGuide} />
+                <GuideSection title={swirl === "None" ? "Swirl / core guide" : `How to build the ${swirl}`} items={detailedGuide.swirlGuide} />
+                <GuideSection title={topping === "None" ? "Topping guide" : `How to finish with ${topping}`} items={detailedGuide.toppingGuide} />
+              </div>
+            </Panel>
+
+            <Panel title="Texture & Core Tips">
+              <div className="space-y-4 text-sm text-neutral-200">
+                <GuideSection title="Important technique notes" items={detailedGuide.textureTips} />
+                <div className="rounded-2xl border border-yellow-700/20 bg-neutral-950/70 p-3">
+                  <div className="mb-2 font-medium text-yellow-300">Best order to build</div>
+                  <p>1. Mix base completely smooth.</p>
+                  <p>2. Add flavor ingredients.</p>
+                  <p>3. If using a core, freeze or thicken it first.</p>
+                  <p>4. Add half the batter, place the core or swirl, then cover or drag through lightly.</p>
+                  <p>5. Cook, chill, or freeze based on the recipe.</p>
+                  <p>6. Finish with topping only once the texture is set enough to hold it.</p>
+                </div>
+              </div>
+            </Panel>
           </div>
 
           {clientMode && (
@@ -1391,6 +1591,21 @@ function IngredientGroup({ title, items }: { title: string; items: Ingredient[] 
     </div>
   );
 }
+
+
+function GuideSection({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div className="rounded-2xl border border-yellow-700/20 bg-neutral-950/70 p-3">
+      <div className="mb-2 font-medium text-yellow-300">{title}</div>
+      <ul className="list-disc space-y-2 pl-5 text-neutral-200">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 
 function DeltaRow({ label, batch, per }: { label: string; batch: string; per: string }) {
   return (
