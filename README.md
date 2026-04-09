@@ -1,17 +1,9 @@
-# Sclass Fitness Recipe App — branded splash version
+# Sclass Fitness Recipe App — real logo version
 
-This build includes:
-- Sclass-styled branded header and cards
-- splash / login-style entry screen
-- branded export pages
-- SVG logo assets included in `/public`
-
-Important:
-- The included logos are app-ready placeholder SVG brand assets styled to your Sclass look.
-- If you want your exact original logo files to appear, place your real files in `/public` and keep these names:
-  - `logo-main.svg` or `logo-main.png`
-  - `logo-mark.svg` or `logo-mark.png`
-  - `logo-online.svg` or `logo-online.png`
+This build uses your actual uploaded logo files:
+- `public/logo-main.png`
+- `public/logo-mark.jpeg`
+- `public/logo-online.jpeg`
 
 ## Deploy
 1. Upload the full folder to GitHub
@@ -19,5 +11,7 @@ Important:
 3. Build command: `npm run build`
 4. Output directory: `dist`
 
+This version replaces placeholder branding with your real logos.
 
-Build fix applied: corrected JSX wrapper nesting in the splash-screen version.
+
+Added recipe category: Rice Crispy Treats / Base Protein Rice Crispy Treats.

@@ -52,9 +52,9 @@ const BRAND = {
   appName: "Sclass Recipe Vault",
   tag: "Luxury performance recipes",
   logos: {
-    main: "/logo-main.svg",
-    mark: "/logo-mark.svg",
-    online: "/logo-online.svg",
+    main: "/logo-main.png",
+    mark: "/logo-mark.jpeg",
+    online: "/logo-online.jpeg",
   },
 };
 
@@ -786,6 +786,74 @@ const recipes: Recipe[] = [
       "Blend the skillet base with extra almond milk and freeze for a baked-batter style pint."
     ]
   }
+  ,
+  {
+    category: "Rice Crispy Treats",
+    name: "Base Protein Rice Crispy Treats",
+    clientName: "Protein Rice Crispy Treats",
+    servings: 6,
+    base: [["whey isolate", 20], ["graham crumbs", 30], ["light cream cheese", 35], ["zero-cal sweetener", 6], ["vanilla extract", 3]],
+    method: [
+      "Prepare a small parchment-lined container or loaf pan so the mixture can be pressed and chilled evenly.",
+      "In a bowl, mix the cream cheese, sweetener, and vanilla until smooth.",
+      "Add whey isolate and graham crumbs and mix until a thick, sticky dough forms.",
+      "If the base feels too dry, add a tiny splash of almond milk. If it feels too soft, let it sit 1–2 minutes so it thickens.",
+      "Add selected flavor ingredients.",
+      "Press half the mixture into the pan if using a core or layer.",
+      "Build the selected core, swirl, or center.",
+      "Cover with the remaining mixture and press down firmly with the back of a spoon or spatula.",
+      "Chill 30–60 minutes until firm, then slice into bars or squares.",
+      "Finish with the selected topping after chilling for the cleanest look and texture."
+    ],
+    flavors: {
+      "Classic Vanilla": [["vanilla extract", 2]],
+      "Chocolate": [["cocoa powder", 10]],
+      "Peanut Butter": [["pb2", 18]],
+      "Birthday Cake": [["instant pudding sugar-free vanilla", 10]],
+      "Biscoff": [["biscoff spread", 16]]
+    },
+    flavorHow: {
+      "Classic Vanilla": ["Add the extra vanilla into the wet mix first so it spreads evenly through the whole batch."],
+      "Chocolate": ["Whisk cocoa into the dry portion before fully combining so there are no dark powder pockets."],
+      "Peanut Butter": ["Whisk PB2 into the mixture until fully blended. If needed, add a very small splash of almond milk to keep the texture pressable."],
+      "Birthday Cake": ["Mix the pudding powder in evenly before pressing the bars so the whole batch has a cake-batter style finish."],
+      "Biscoff": ["Warm the Biscoff slightly and fold it through the mixture gently so you keep visible ribbons without making the base too loose."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Core": [["greek yogurt nonfat", 45], ["pudding mix sugar-free cheesecake", 6]],
+      "PB Center": [["pb2", 14], ["almond milk unsweetened", 10]],
+      "Biscoff Core": [["biscoff spread", 20]],
+      "Chocolate Layer": [["cocoa powder", 8], ["sugar-free syrup", 14]]
+    },
+    swirlBuild: {
+      None: ["No core or center is selected, so once the flavored base is ready you can press the whole batch directly into the pan and chill."],
+      "Cheesecake Core": ["Mix yogurt and cheesecake pudding until very thick.", "If needed, chill or freeze it briefly so it holds as a center layer.", "Press half the base into the pan, spread the cheesecake layer through the center, then fully cover with the remaining base."],
+      "PB Center": ["Mix PB2 and almond milk into a thick peanut butter-style paste.", "Keep it centered and do not spread too close to the edges so it stays hidden when sliced."],
+      "Biscoff Core": ["Warm Biscoff only enough to make it spreadable.", "Press half the base down first, add the Biscoff in the middle, then top with the remaining base and seal the edges."],
+      "Chocolate Layer": ["Mix cocoa and syrup until smooth and glossy.", "Spread it as a thin center ribbon between the bottom and top layers instead of stirring it through the whole batch."]
+    },
+    toppings: {
+      None: [],
+      "Chocolate Drizzle": [["sugar-free syrup", 16], ["cocoa powder", 4]],
+      "PB Drizzle": [["pb2", 10], ["almond milk unsweetened", 10]],
+      "Biscoff Drizzle": [["biscoff spread", 12]],
+      "Protein Frost": [["greek yogurt nonfat", 30], ["instant pudding sugar-free vanilla", 5]]
+    },
+    toppingHow: {
+      None: ["No topping is selected, so slice and serve once the bars are fully chilled and firm."],
+      "Chocolate Drizzle": ["Whisk syrup and cocoa until smooth, then drizzle lightly over chilled bars so it stays on top instead of soaking in."],
+      "PB Drizzle": ["Mix PB2 and almond milk until glossy and spoonable, then drizzle over the top after slicing or just before slicing for a cleaner finish."],
+      "Biscoff Drizzle": ["Warm the Biscoff slightly and drizzle lightly over the chilled bars. Do not pour too heavily or it can overpower the texture."],
+      "Protein Frost": ["Mix yogurt and pudding until thick and spreadable, then apply a light top layer once the bars are fully chilled."]
+    },
+    creami: [
+      "For a rice-crispy-inspired pint, blend the base with extra almond milk until smooth before freezing.",
+      "After spinning, use crushed crispy topping or drizzle as a mix-in so the texture stays more interesting.",
+      "For the best result, keep crunchy toppings for the very end instead of blending them into the base."
+    ]
+  }
+
 ];
 
 function scaleItems(items: Ingredient[], factor: number): Ingredient[] {
