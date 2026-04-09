@@ -1,6 +1,6 @@
 
 import React, { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Search,
   Save,
@@ -1147,7 +1147,7 @@ export default function SclassRecipeAppFinal() {
   const [pack, setPack] = useState<string>("All Packs");
   const [clientMode, setClientMode] = useState(false);
   const [savedBuilds, setSavedBuilds] = useState<SavedBuild[]>([]);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showIntro, setShowIntro] = useState(true);
 
   useEffect(() => {
     try {
@@ -1162,7 +1162,7 @@ export default function SclassRecipeAppFinal() {
 
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowSplash(false), 1800);
+    const timer = window.setTimeout(() => setShowIntro(false), 1600);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -1184,51 +1184,45 @@ export default function SclassRecipeAppFinal() {
 
   return (
     <div className="relative min-h-screen bg-neutral-950 text-white">
-      {showSplash && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(212,175,55,0.18),_transparent_30%),linear-gradient(180deg,#0b0b0b,#050505)] px-6">
-          <div className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-yellow-700/30 bg-neutral-950/95 shadow-2xl">
-            <div className="border-b border-yellow-700/15 p-8 text-center">
-              <div className="mb-5 flex justify-center">
-                <img src={BRAND.logos.online} alt="Sclass Online Coaching" className="h-16 w-auto object-contain sm:h-20" />
-              </div>
-              <div className="text-[11px] uppercase tracking-[0.35em] text-yellow-500">Private Member Access</div>
-              <h2 className="mt-3 text-3xl font-bold text-yellow-300">Welcome to the Sclass Vault</h2>
-              <p className="mt-3 text-sm text-neutral-300">
-                Luxury coaching feel. Premium recipes. Built for your Sclass Fitness brand.
-              </p>
-            </div>
+      <AnimatePresence>
+        {showIntro && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.45, ease: "easeOut" } }}
+            className="fixed inset-0 z-[70] flex items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,_rgba(215,176,75,0.14),_transparent_30%),linear-gradient(180deg,#080808,#020202)]"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.72, y: 14 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="relative flex flex-col items-center"
+            >
+              <motion.img
+                src={BRAND.logos.mark}
+                alt="Sclass Fitness"
+                initial={{ opacity: 0, scale: 0.86 }}
+                animate={{
+                  opacity: 1,
+                  scale: [0.92, 1.05, 1],
+                }}
+                transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
+                className="h-28 w-28 object-contain drop-shadow-[0_0_28px_rgba(215,176,75,0.22)] sm:h-36 sm:w-36 md:h-44 md:w-44"
+              />
 
-            <div className="space-y-4 p-8">
-              <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/80 p-4">
-                <div className="mb-2 text-xs uppercase tracking-[0.28em] text-neutral-500">Member Email</div>
-                <div className="h-12 rounded-2xl border border-yellow-700/20 bg-neutral-950/80 px-4 flex items-center text-neutral-500">
-                  coach@sclassfitness.com
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/80 p-4">
-                <div className="mb-2 text-xs uppercase tracking-[0.28em] text-neutral-500">Access Code</div>
-                <div className="h-12 rounded-2xl border border-yellow-700/20 bg-neutral-950/80 px-4 flex items-center text-neutral-500">
-                  ••••••••
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowSplash(false)}
-                className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-yellow-500 px-5 font-semibold text-black transition hover:bg-yellow-400"
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35, duration: 0.6 }}
+                className="mt-6 text-center"
               >
-                Enter Sclass Recipe Vault
-              </button>
-
-              <div className="text-center text-xs uppercase tracking-[0.28em] text-neutral-500">
-                Coach Sclass Master Edition
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    <div className="min-h-screen bg-neutral-950 text-white">
+                <div className="text-[11px] uppercase tracking-[0.42em] text-yellow-500">Sclass Fitness</div>
+                <div className="mt-2 text-sm text-neutral-400">Recipe Vault</div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="min-h-screen bg-neutral-950 text-white">
       <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 md:px-8">
         <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
           <div className="relative overflow-hidden rounded-3xl border border-yellow-700/40 bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.16),_transparent_28%),linear-gradient(180deg,rgba(23,23,23,1),rgba(10,10,10,1))] shadow-2xl">
