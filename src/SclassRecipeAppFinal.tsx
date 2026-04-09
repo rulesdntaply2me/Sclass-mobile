@@ -889,6 +889,59 @@ function exportBrandedHTML(
 }
 
 
+
+function joinIngredientLines(items: Ingredient[]) {
+  if (!items || items.length === 0) return "None";
+  return items.map((item) => ingredientLine(item)).join(" + ");
+}
+
+function buildSectionIntro(section: "flavor" | "swirl" | "topping", label: string, items: Ingredient[]) {
+  if (!items || items.length === 0) {
+    if (section === "flavor") return `Selected flavor: ${label} (no extra ingredients).`;
+    if (section === "swirl") return `Selected swirl / core: ${label} (no extra ingredients).`;
+    return `Selected topping: ${label} (no extra ingredients).`;
+  }
+
+  if (section === "flavor") return `Flavor ingredients for ${label}: ${joinIngredientLines(items)}.`;
+  if (section === "swirl") return `Swirl / core ingredients for ${label}: ${joinIngredientLines(items)}.`;
+  return `Topping ingredients for ${label}: ${joinIngredientLines(items)}.`;
+}
+
+function makeCombinedMethod(
+  baseMethod: string[],
+  flavor: string,
+  swirl: string,
+  topping: string,
+  flavorItems: Ingredient[],
+  swirlItems: Ingredient[],
+  toppingItems: Ingredient[],
+  flavorMethodItems: string[],
+  swirlMethodItems: string[],
+  toppingMethodItems: string[]
+) {
+  const items: string[] = [];
+
+  items.push(...baseMethod);
+  items.push(buildSectionIntro("flavor", flavor, flavorItems));
+  items.push(...flavorMethodItems);
+
+  if (swirl !== "None" || (swirlItems && swirlItems.length > 0)) {
+    items.push(buildSectionIntro("swirl", swirl, swirlItems));
+    items.push(...swirlMethodItems);
+  } else {
+    items.push("No swirl or core is selected for this build, so continue once the base && flavor are ready.");
+  }
+
+  if (topping !== "None" || (toppingItems && toppingItems.length > 0)) {
+    items.push(buildSectionIntro("topping", topping, toppingItems));
+    items.push(...toppingMethodItems);
+  } else {
+    items.push("No topping is selected for this build, so serve it plain once the texture is fully set.");
+  }
+
+  return items;
+}
+
 function getRecipeType(recipeName: string) {
   const n = recipeName.toLowerCase();
   if (n.includes("muffin")) return "muffin";
@@ -1305,9 +1358,44 @@ function RecipeCard({
 
   const detailTitle = clientMode ? recipe.clientName : recipe.name;
   const detailedGuide = getDetailedGuide(recipe.name, flavor, swirl, topping);
-  const flavorMethodItems = recipe.flavorHow?.[flavor] || detailedGuide.flavorGuide;
-  const swirlMethodItems = recipe.swirlBuild?.[swirl] || detailedGuide.swirlGuide;
-  const toppingMethodItems = recipe.toppingHow?.[topping] || detailedGuide.toppingGuide;
+
+  const flavorMethodItems = [
+    buildSectionIntro("flavor", flavor, flavorList),
+    ...(recipe.flavorHow?.[flavor] || detailedGuide.flavorGuide),
+  ];
+
+  const swirlMethodItems = swirl === "None"
+    ? [
+        buildSectionIntro("swirl", swirl, swirlList),
+        ...detailedGuide.swirlGuide,
+      ]
+    : [
+        buildSectionIntro("swirl", swirl, swirlList),
+        ...(recipe.swirlBuild?.[swirl] || detailedGuide.swirlGuide),
+      ];
+
+  const toppingMethodItems = topping === "None"
+    ? [
+        buildSectionIntro("topping", topping, toppingList),
+        ...detailedGuide.toppingGuide,
+      ]
+    : [
+        buildSectionIntro("topping", topping, toppingList),
+        ...(recipe.toppingHow?.[topping] || detailedGuide.toppingGuide),
+      ];
+
+  const combinedMethodItems = makeCombinedMethod(
+    recipe.method,
+    flavor,
+    swirl,
+    topping,
+    flavorList,
+    swirlList,
+    toppingList,
+    flavorMethodItems.slice(1),
+    swirlMethodItems.slice(1),
+    toppingMethodItems.slice(1)
+  );
 
   const saveBuild = () => {
     const newBuild: SavedBuild = {
@@ -1416,10 +1504,10 @@ function RecipeCard({
           </div>
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <Panel title="Main Method">
+            <Panel title="Main Detailed Instructions">
               <ol className="list-decimal space-y-3 pl-5 text-sm text-neutral-200">
-                {recipe.method.map((step) => (
-                  <li key={step}>{step}</li>
+                {combinedMethodItems.map((step, idx) => (
+                  <li key={`${recipe.name}-${idx}-${step}`}>{step}</li>
                 ))}
               </ol>
             </Panel>
@@ -1462,9 +1550,9 @@ function RecipeCard({
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
             <Panel title="Detailed Build Guide">
               <div className="space-y-5 text-sm text-neutral-200">
-                <GuideSection title={`How to add the flavor: ${flavor}`} items={detailedGuide.flavorGuide} />
-                <GuideSection title={swirl === "None" ? "Swirl / core guide" : `How to build the ${swirl}`} items={detailedGuide.swirlGuide} />
-                <GuideSection title={topping === "None" ? "Topping guide" : `How to finish with ${topping}`} items={detailedGuide.toppingGuide} />
+                <GuideSection title={`How to add the flavor: ${flavor}`} items={flavorMethodItems} />
+                <GuideSection title={swirl === "None" ? "Swirl / core guide" : `How to build the ${swirl}`} items={swirlMethodItems} />
+                <GuideSection title={topping === "None" ? "Topping guide" : `How to finish with ${topping}`} items={toppingMethodItems} />
               </div>
             </Panel>
 
