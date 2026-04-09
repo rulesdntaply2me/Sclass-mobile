@@ -18,3 +18,6 @@ Important:
 2. Import into Vercel
 3. Build command: `npm run build`
 4. Output directory: `dist`
+
+
+Build fix applied: corrected JSX wrapper nesting in the splash-screen version.

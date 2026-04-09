@@ -1173,7 +1173,7 @@ export default function SclassRecipeAppFinal() {
                     <div>
                       <div className="mb-2 text-[11px] uppercase tracking-[0.35em] text-yellow-500">{BRAND.tag}</div>
                       <h1 className="text-3xl font-bold leading-tight text-yellow-300 sm:text-4xl md:text-5xl">
-                        {clientMode ? "Sclass Sclass Client Recipe Builder" : BRAND.appName}
+                        {clientMode ? "Sclass Client Recipe Builder" : BRAND.appName}
                       </h1>
                       <p className="mt-3 max-w-2xl text-sm text-neutral-300 sm:text-base">
                         Premium branded recipe system with dynamic macros, flavor packs, saved builds, branded export,
@@ -1307,6 +1307,7 @@ export default function SclassRecipeAppFinal() {
         </div>
 
       </div>
+    </div>
     </div>
   );
 }
