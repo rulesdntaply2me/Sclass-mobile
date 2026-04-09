@@ -1,0 +1,1403 @@
+
+import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  Search,
+  Save,
+  Download,
+  Trash2,
+  Calculator,
+  ChefHat,
+  Sparkles,
+  Layers3,
+  IceCreamBowl,
+  Users,
+  BookOpen,
+  Wand2,
+} from "lucide-react";
+
+type Goal = "Lean" | "Bulk" | "Anabolic" | "Low Cal" | "No Sugar";
+type Ingredient = [string, number];
+type Macro = { cal: number; p: number; c: number; f: number };
+
+type Recipe = {
+  category: string;
+  name: string;
+  clientName: string;
+  servings: number;
+  base: Ingredient[];
+  method: string[];
+  flavors: Record<string, Ingredient[]>;
+  flavorHow: Record<string, string[]>;
+  swirls: Record<string, Ingredient[]>;
+  swirlBuild: Record<string, string[]>;
+  toppings: Record<string, Ingredient[]>;
+  toppingHow: Record<string, string[]>;
+  creami: string[];
+};
+
+type SavedBuild = {
+  id: string;
+  customName: string;
+  recipeName: string;
+  goal: Goal;
+  flavor: string;
+  swirl: string;
+  topping: string;
+};
+
+const db: Record<string, { unit: string; cal: number; p: number; c: number; f: number }> = {
+  "whey isolate": { unit: "g", cal: 3.8, p: 0.84, c: 0.06, f: 0.03 },
+  "oat flour": { unit: "g", cal: 4.04, p: 0.14, c: 0.68, f: 0.09 },
+  "cocoa powder": { unit: "g", cal: 2.28, p: 0.2, c: 0.58, f: 0.14 },
+  "egg whites": { unit: "g", cal: 0.52, p: 0.11, c: 0.007, f: 0.002 },
+  "whole egg": { unit: "unit", cal: 70, p: 6, c: 0.4, f: 5 },
+  "greek yogurt nonfat": { unit: "g", cal: 0.59, p: 0.1, c: 0.036, f: 0.004 },
+  "light cream cheese": { unit: "g", cal: 2.1, p: 0.07, c: 0.05, f: 0.15 },
+  "almond milk unsweetened": { unit: "ml", cal: 0.13, p: 0.005, c: 0.003, f: 0.011 },
+  "baking powder": { unit: "g", cal: 0.53, p: 0, c: 0.28, f: 0 },
+  "zero-cal sweetener": { unit: "g", cal: 0, p: 0, c: 0, f: 0 },
+  "sugar-free syrup": { unit: "g", cal: 0.2, p: 0, c: 0.05, f: 0 },
+  blueberries: { unit: "g", cal: 0.57, p: 0.007, c: 0.145, f: 0.003 },
+  strawberries: { unit: "g", cal: 0.32, p: 0.007, c: 0.077, f: 0.003 },
+  pb2: { unit: "g", cal: 4, p: 0.5, c: 0.33, f: 0.125 },
+  "biscoff spread": { unit: "g", cal: 5.84, p: 0.03, c: 0.58, f: 0.37 },
+  "dark chocolate chips": { unit: "g", cal: 5, p: 0.06, c: 0.63, f: 0.27 },
+  "sugar-free chocolate chips": { unit: "g", cal: 4.3, p: 0.05, c: 0.5, f: 0.28 },
+  "graham crumbs": { unit: "g", cal: 4.6, p: 0.07, c: 0.78, f: 0.13 },
+  cinnamon: { unit: "g", cal: 2.47, p: 0.04, c: 0.81, f: 0.01 },
+  "vanilla extract": { unit: "g", cal: 2.88, p: 0, c: 0.13, f: 0 },
+  "pudding mix sugar-free cheesecake": { unit: "g", cal: 3.3, p: 0, c: 0.8, f: 0 },
+  "instant pudding sugar-free vanilla": { unit: "g", cal: 3.4, p: 0, c: 0.82, f: 0 },
+  "xanthan gum": { unit: "g", cal: 3.3, p: 0, c: 0.77, f: 0 },
+};
+
+const goalMultipliers: Record<Goal, number> = {
+  Lean: 1,
+  Bulk: 1.35,
+  Anabolic: 1.12,
+  "Low Cal": 0.85,
+  "No Sugar": 0.82,
+};
+
+const flavorPacks: Record<string, Record<string, Ingredient[]>> = {
+  "Gym Pack": {
+    Vanilla: [["instant pudding sugar-free vanilla", 8]],
+    Chocolate: [["cocoa powder", 10]],
+    PB: [["pb2", 16]],
+  },
+  "Dessert Pack": {
+    "Cake Batter": [["instant pudding sugar-free vanilla", 10]],
+    "Cinnamon Roll": [["cinnamon", 4], ["instant pudding sugar-free vanilla", 6]],
+    "Chocolate Fudge": [["cocoa powder", 14]],
+  },
+  "Cereal Pack": {
+    "Cinnamon Toast": [["cinnamon", 4], ["zero-cal sweetener", 4]],
+    "Cookie Crunch": [["graham crumbs", 16]],
+  },
+  "Luxury Pack": {
+    "Biscoff Deluxe": [["biscoff spread", 18]],
+    "Cheesecake Supreme": [["pudding mix sugar-free cheesecake", 10]],
+    "Choco PB Dream": [["cocoa powder", 8], ["pb2", 12]],
+  },
+};
+
+const commonFlavors: Record<string, Ingredient[]> = {
+  "Cookies & Cream": [["instant pudding sugar-free vanilla", 8]],
+  "Strawberry Cheesecake": [["strawberries", 80], ["pudding mix sugar-free cheesecake", 6]],
+  "Chocolate PB": [["cocoa powder", 8], ["pb2", 12]],
+  "Biscoff Cheesecake": [["biscoff spread", 14], ["pudding mix sugar-free cheesecake", 6]],
+  "Cinnamon Toast": [["cinnamon", 4], ["zero-cal sweetener", 4]],
+  "Dark Chocolate": [["cocoa powder", 14]],
+};
+
+const commonSwirls: Record<string, Ingredient[]> = {
+  "Cheesecake Core": [["greek yogurt nonfat", 40], ["pudding mix sugar-free cheesecake", 6]],
+  "Biscoff Core": [["biscoff spread", 18]],
+  "Chocolate Core": [["sugar-free chocolate chips", 16]],
+  "PB Core": [["pb2", 14], ["almond milk unsweetened", 10]],
+  "Fruit Jam": [["strawberries", 60]],
+};
+
+const commonToppings: Record<string, Ingredient[]> = {
+  "Chocolate Drip": [["sugar-free syrup", 16], ["cocoa powder", 4]],
+  "PB Drip": [["pb2", 10], ["almond milk unsweetened", 10]],
+  "Biscoff Drip": [["biscoff spread", 12]],
+  "Cookie Crunch": [["graham crumbs", 14]],
+  "Protein Frost": [["greek yogurt nonfat", 30], ["instant pudding sugar-free vanilla", 5]],
+};
+
+const recipes: Recipe[] = [
+  {
+    category: "Muffins",
+    name: "Base Protein Muffins",
+    clientName: "Protein Muffins",
+    servings: 6,
+    base: [["whey isolate", 30], ["oat flour", 35], ["egg whites", 150], ["almond milk unsweetened", 60], ["baking powder", 6], ["zero-cal sweetener", 8], ["vanilla extract", 3]],
+    method: [
+      "Preheat oven to 350°F. Line or lightly spray a 6-slot muffin tray.",
+      "Whisk dry ingredients until even.",
+      "Whisk wet ingredients separately until smooth.",
+      "Combine wet and dry and rest 2 minutes.",
+      "Add selected flavor ingredients.",
+      "Fill halfway, add swirl/core if using, then cover with remaining batter.",
+      "Bake 14–18 minutes.",
+      "Cool 10 minutes before removing."
+    ],
+    flavors: {
+      Blueberry: [["blueberries", 75]],
+      Chocolate: [["cocoa powder", 12]],
+      "Cinnamon Roll": [["cinnamon", 4], ["instant pudding sugar-free vanilla", 8]],
+      "Peanut Butter": [["pb2", 16]],
+      Biscoff: [["biscoff spread", 18]]
+    },
+    flavorHow: {
+      Blueberry: ["Fold blueberries in at the end."],
+      Chocolate: ["Whisk cocoa into the dry mix before adding wet ingredients."],
+      "Cinnamon Roll": ["Whisk cinnamon and pudding mix into the dry ingredients."],
+      "Peanut Butter": ["Whisk PB2 into the dry mix."],
+      Biscoff: ["Warm slightly and fold gently into the batter or reserve for a ribbon."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Swirl": [["greek yogurt nonfat", 50], ["pudding mix sugar-free cheesecake", 6]],
+      "Chocolate Swirl": [["sugar-free syrup", 20], ["cocoa powder", 6]],
+      "Biscoff Core": [["biscoff spread", 24]],
+      "PB Core": [["pb2", 14], ["almond milk unsweetened", 10]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Swirl": ["Mix yogurt and cheesecake pudding until thick.", "Spoon into each half-filled muffin and lightly twist."],
+      "Chocolate Swirl": ["Mix syrup and cocoa until glossy, then drag lightly through the batter."],
+      "Biscoff Core": ["Freeze small Biscoff portions for 15–20 minutes.", "Place in the center and cover completely."],
+      "PB Core": ["Mix PB2 with almond milk into a thick paste.", "Freeze small portions and bury in the center."]
+    },
+    toppings: {
+      None: [],
+      "Yogurt Glaze": [["greek yogurt nonfat", 30], ["zero-cal sweetener", 3]],
+      "Cinnamon Drizzle": [["sugar-free syrup", 18], ["cinnamon", 2]],
+      "Chocolate Drizzle": [["sugar-free syrup", 18], ["cocoa powder", 4]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      "Yogurt Glaze": ["Mix until smooth and drizzle over cooled muffins."],
+      "Cinnamon Drizzle": ["Mix until smooth and drizzle after cooling."],
+      "Chocolate Drizzle": ["Whisk until glossy and drizzle after cooling."]
+    },
+    creami: [
+      "Add 120ml extra almond milk and 1g xanthan gum.",
+      "Freeze 20–24 hours in a pint.",
+      "Spin on Lite Ice Cream and respin if needed."
+    ]
+  },
+  {
+    category: "Brownies",
+    name: "Base Protein Brownies",
+    clientName: "Protein Brownies",
+    servings: 9,
+    base: [["whey isolate", 35], ["oat flour", 30], ["cocoa powder", 18], ["egg whites", 160], ["almond milk unsweetened", 70], ["baking powder", 5], ["zero-cal sweetener", 10]],
+    method: [
+      "Preheat oven to 350°F and line a small square pan.",
+      "Whisk dry ingredients and wet ingredients separately.",
+      "Combine until glossy and pourable.",
+      "Add selected flavor ingredients.",
+      "Spread half the batter, build the selected swirl/core, then cover with the rest.",
+      "Bake 12–16 minutes.",
+      "Cool fully before slicing."
+    ],
+    flavors: {
+      "Cookies & Cream": [["instant pudding sugar-free vanilla", 8]],
+      Biscoff: [["biscoff spread", 20]],
+      "Double Chocolate": [["dark chocolate chips", 18]],
+      "Peanut Butter": [["pb2", 18]],
+      "Blueberry Cheesecake": [["blueberries", 60], ["pudding mix sugar-free cheesecake", 5]]
+    },
+    flavorHow: {
+      "Cookies & Cream": ["Whisk pudding mix into the dry ingredients."],
+      Biscoff: ["Warm slightly and fold it in gently."],
+      "Double Chocolate": ["Fold chocolate chips in at the end."],
+      "Peanut Butter": ["Whisk PB2 into the dry mix."],
+      "Blueberry Cheesecake": ["Whisk cheesecake pudding into the dry mix and fold blueberries in last."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Ripple": [["greek yogurt nonfat", 60], ["pudding mix sugar-free cheesecake", 8]],
+      "PB Swirl": [["pb2", 18], ["almond milk unsweetened", 15]],
+      "Biscoff Core Pockets": [["biscoff spread", 30]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Ripple": ["Mix yogurt and pudding until thick.", "Dot over the half-filled pan and drag a knife through."],
+      "PB Swirl": ["Mix PB2 and almond milk into a smooth paste.", "Dot over the batter and drag lightly."],
+      "Biscoff Core Pockets": ["Freeze small Biscoff portions until firm and press into the half-filled batter, then cover fully."]
+    },
+    toppings: {
+      None: [],
+      "Dusting Cocoa": [["cocoa powder", 3]],
+      "Yogurt Frost": [["greek yogurt nonfat", 35], ["zero-cal sweetener", 3]],
+      "Chocolate Top": [["sugar-free chocolate chips", 16]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      "Dusting Cocoa": ["Dust after brownies cool."],
+      "Yogurt Frost": ["Mix and spread over cooled brownies."],
+      "Chocolate Top": ["Add after baking for melt or after cooling for texture."]
+    },
+    creami: [
+      "Add 140ml extra almond milk and 1g xanthan gum.",
+      "Freeze flat, then spin.",
+      "Use PB or Biscoff after first spin for brownie batter style."
+    ]
+  },
+  {
+    category: "Cookies",
+    name: "Base Protein Cookies",
+    clientName: "Protein Cookies",
+    servings: 8,
+    base: [["whey isolate", 30], ["oat flour", 40], ["greek yogurt nonfat", 80], ["almond milk unsweetened", 20], ["baking powder", 4], ["zero-cal sweetener", 8], ["vanilla extract", 3]],
+    method: [
+      "Preheat oven to 350°F and line a tray.",
+      "Mix dry ingredients thoroughly.",
+      "Add yogurt, almond milk, and vanilla until a thick dough forms.",
+      "Rest 3 minutes.",
+      "Add selected flavor ingredients.",
+      "For stuffed cookies, flatten dough, build the selected core, seal, and flatten lightly.",
+      "Bake 9–12 minutes.",
+      "Cool on the tray first so the cookies set."
+    ],
+    flavors: {
+      "Cake Batter": [["instant pudding sugar-free vanilla", 10]],
+      "Chocolate Chip": [["sugar-free chocolate chips", 24]],
+      "Blueberry Muffin": [["blueberries", 55], ["cinnamon", 2]],
+      "PB Cookie": [["pb2", 18]],
+      "Biscoff Cookie": [["biscoff spread", 18]]
+    },
+    flavorHow: {
+      "Cake Batter": ["Whisk pudding mix into the dry ingredients first."],
+      "Chocolate Chip": ["Fold chips in last."],
+      "Blueberry Muffin": ["Fold blueberries in gently at the end."],
+      "PB Cookie": ["Whisk PB2 into the dry mix."],
+      "Biscoff Cookie": ["Warm Biscoff slightly and fold it in gently, or reserve it for a filled center."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Center": [["greek yogurt nonfat", 45], ["pudding mix sugar-free cheesecake", 6]],
+      "Chocolate Core": [["sugar-free chocolate chips", 20]],
+      "PB Swirl": [["pb2", 14], ["almond milk unsweetened", 10]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Center": ["Mix yogurt and cheesecake pudding until thick.", "Freeze small center portions, place inside flattened dough, then seal completely."],
+      "Chocolate Core": ["Place chips in the middle of flattened dough and seal well."],
+      "PB Swirl": ["Mix PB2 and almond milk into a drizzle.", "Swirl on top before baking or drizzle after baking."]
+    },
+    toppings: {
+      None: [],
+      "Vanilla Glaze": [["greek yogurt nonfat", 25], ["instant pudding sugar-free vanilla", 4]],
+      "PB Drizzle": [["pb2", 10], ["almond milk unsweetened", 10]],
+      "Cinnamon Top": [["cinnamon", 2], ["zero-cal sweetener", 2]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      "Vanilla Glaze": ["Mix until smooth and spoon over cooled cookies."],
+      "PB Drizzle": ["Mix until glossy and drizzle after cooling."],
+      "Cinnamon Top": ["Sprinkle over warm cookies."]
+    },
+    creami: [
+      "Add 120ml extra almond milk for a cookie dough style pint.",
+      "Freeze flat, spin, then add chips or cheesecake center pieces after respin."
+    ]
+  },
+  {
+    category: "Cheesecakes",
+    name: "Base Protein Cheesecake",
+    clientName: "Protein Cheesecake",
+    servings: 6,
+    base: [["greek yogurt nonfat", 220], ["light cream cheese", 100], ["whey isolate", 25], ["whole egg", 1], ["instant pudding sugar-free vanilla", 10], ["zero-cal sweetener", 10], ["vanilla extract", 3]],
+    method: [
+      "Preheat oven to 325°F and prep your pan or ramekins.",
+      "Beat cream cheese smooth first.",
+      "Mix in yogurt, whey, pudding mix, sweetener, and vanilla.",
+      "Add the egg last and mix only until combined.",
+      "Pour into the pan.",
+      "Add selected flavor ingredients, then build the selected swirl/core.",
+      "Bake 24–32 minutes until the center is just slightly jiggly.",
+      "Cool fully, then chill at least 4 hours."
+    ],
+    flavors: {
+      "Blueberry Cheesecake": [["blueberries", 80]],
+      "Biscoff Cheesecake": [["biscoff spread", 24]],
+      "Chocolate Cheesecake": [["cocoa powder", 12]],
+      "Cinnamon Cheesecake": [["cinnamon", 4]],
+      "PB Cheesecake": [["pb2", 20]]
+    },
+    flavorHow: {
+      "Blueberry Cheesecake": ["Fold blueberries in last."],
+      "Biscoff Cheesecake": ["Warm slightly and swirl in or blend directly into the batter."],
+      "Chocolate Cheesecake": ["Whisk cocoa into the base before the egg."],
+      "Cinnamon Cheesecake": ["Whisk cinnamon into the base for even spice."],
+      "PB Cheesecake": ["Whisk PB2 in before the egg."]
+    },
+    swirls: {
+      None: [],
+      "Blueberry Swirl": [["blueberries", 50]],
+      "Biscoff Swirl": [["biscoff spread", 18]],
+      "Chocolate Ribbon": [["cocoa powder", 8], ["sugar-free syrup", 15]],
+      "Cheesecake Core Cups": [["light cream cheese", 36], ["zero-cal sweetener", 3]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Blueberry Swirl": ["Lightly mash part of the blueberries, spoon over the batter, and drag a skewer through."],
+      "Biscoff Swirl": ["Warm slightly, spoon over the top, and drag lightly through the batter."],
+      "Chocolate Ribbon": ["Mix cocoa and syrup into a smooth ribbon, then streak through the top."],
+      "Cheesecake Core Cups": ["Mix cream cheese and sweetener, freeze small center portions, place in ramekins halfway through filling, then cover."]
+    },
+    toppings: {
+      None: [],
+      "Yogurt Top": [["greek yogurt nonfat", 40]],
+      "Crumb Top": [["graham crumbs", 16]],
+      "Chocolate Chips": [["sugar-free chocolate chips", 16]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      "Yogurt Top": ["Spread over chilled cheesecake."],
+      "Crumb Top": ["Sprinkle just before serving."],
+      "Chocolate Chips": ["Top after chilling for texture or near the end of baking for slight melt."]
+    },
+    creami: [
+      "Blend the base with 100ml almond milk until smooth.",
+      "Freeze, spin once, scrape sides, then respin.",
+      "Use the chosen flavor as a mix-in or add the selected swirl after the final spin."
+    ]
+  },
+  {
+    category: "Ice Cream / Creami",
+    name: "Base Protein Creami Pint",
+    clientName: "Protein Creami Pint",
+    servings: 1,
+    base: [["whey isolate", 30], ["greek yogurt nonfat", 120], ["almond milk unsweetened", 220], ["instant pudding sugar-free vanilla", 8], ["zero-cal sweetener", 6], ["xanthan gum", 1]],
+    method: [
+      "Blend all ingredients until completely smooth.",
+      "Pour into a Creami pint and freeze flat for 20–24 hours.",
+      "Spin on Lite Ice Cream.",
+      "If crumbly, add 15–30ml almond milk and respin.",
+      "Blend in or fold in selected flavor ingredients.",
+      "Build the selected ribbon or topping after the final spin."
+    ],
+    flavors: {
+      Blueberry: [["blueberries", 90]],
+      Chocolate: [["cocoa powder", 12]],
+      "Cake Batter": [["instant pudding sugar-free vanilla", 8]],
+      PB: [["pb2", 18]],
+      Biscoff: [["biscoff spread", 18]]
+    },
+    flavorHow: {
+      Blueberry: ["Blend directly into the base before freezing."],
+      Chocolate: ["Blend cocoa fully before freezing."],
+      "Cake Batter": ["Whisk in extra vanilla pudding mix before freezing."],
+      PB: ["Blend PB2 into the base before freezing."],
+      Biscoff: ["Blend into the base or save for a ribbon after the final spin."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Swirl": [["greek yogurt nonfat", 40], ["pudding mix sugar-free cheesecake", 5]],
+      "Biscoff Ribbon": [["biscoff spread", 16]],
+      "Chocolate Fudge Ribbon": [["sugar-free syrup", 20], ["cocoa powder", 5]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Swirl": ["Mix yogurt and pudding until thick.", "After the final spin, dig a trench, spoon in the mixture, and run Mix-In once or fold by hand."],
+      "Biscoff Ribbon": ["Warm slightly, spoon into a center trench after the final spin, and run Mix-In once."],
+      "Chocolate Fudge Ribbon": ["Mix syrup and cocoa until smooth, then spoon into the center trench and lightly fold."]
+    },
+    toppings: {
+      None: [],
+      "Cookie Crumble": [["graham crumbs", 14]],
+      "Chocolate Chips": [["sugar-free chocolate chips", 15]],
+      "Fresh Fruit Top": [["strawberries", 70]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      "Cookie Crumble": ["Sprinkle over the finished pint just before eating."],
+      "Chocolate Chips": ["Add after the final spin or use Mix-In once."],
+      "Fresh Fruit Top": ["Top the finished pint right before serving."]
+    },
+    creami: [
+      "This recipe is already in Creami format.",
+      "For firmer texture, respin once without extra liquid first.",
+      "For softer texture, add almond milk in small splashes and respin until creamy."
+    ]
+  },
+  {
+    category: "Pudding Cups",
+    name: "Base Protein Pudding Cup",
+    clientName: "Protein Pudding Cup",
+    servings: 2,
+    base: [["greek yogurt nonfat", 200], ["whey isolate", 25], ["instant pudding sugar-free vanilla", 12], ["almond milk unsweetened", 40], ["zero-cal sweetener", 4]],
+    method: [
+      "Whisk or blend all base ingredients until completely smooth.",
+      "Rest 3–5 minutes so the pudding mix thickens.",
+      "Add selected flavor ingredients.",
+      "Layer into cups or jars.",
+      "If using a swirl or center, add halfway through the filling process.",
+      "Top as desired and chill 20–30 minutes for best texture."
+    ],
+    flavors: {
+      Cheesecake: [["pudding mix sugar-free cheesecake", 8]],
+      Chocolate: [["cocoa powder", 10]],
+      Biscoff: [["biscoff spread", 16]],
+      Strawberry: [["strawberries", 80]],
+      PeanutButter: [["pb2", 16]]
+    },
+    flavorHow: {
+      Cheesecake: ["Whisk cheesecake pudding mix directly into the base for a tangier, thicker finish."],
+      Chocolate: ["Whisk cocoa into the base until fully dissolved."],
+      Biscoff: ["Warm slightly and blend in or leave partly mixed for ribbons."],
+      Strawberry: ["Fold chopped strawberries in after the base is mixed."],
+      PeanutButter: ["Whisk PB2 into the pudding base until smooth." ]
+    },
+    swirls: {
+      None: [],
+      "Chocolate Ribbon": [["sugar-free syrup", 16], ["cocoa powder", 4]],
+      "Biscoff Swirl": [["biscoff spread", 14]],
+      "Cheesecake Center": [["greek yogurt nonfat", 40], ["pudding mix sugar-free cheesecake", 5]],
+      "PB Core": [["pb2", 12], ["almond milk unsweetened", 8]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Chocolate Ribbon": ["Whisk syrup and cocoa until glossy, then spoon it between pudding layers."],
+      "Biscoff Swirl": ["Warm slightly and drizzle between layers, then lightly drag a spoon through."],
+      "Cheesecake Center": ["Mix yogurt and cheesecake pudding until thick and use as the middle layer."],
+      "PB Core": ["Mix PB2 and almond milk into a thick paste and place in the center of each cup before covering with the final layer."]
+    },
+    toppings: {
+      None: [],
+      "Cookie Crumbs": [["graham crumbs", 12]],
+      "Chocolate Chips": [["sugar-free chocolate chips", 12]],
+      "Fresh Fruit": [["strawberries", 60]],
+      "Yogurt Top": [["greek yogurt nonfat", 30]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      "Cookie Crumbs": ["Sprinkle over the top right before serving for texture."],
+      "Chocolate Chips": ["Scatter over the top after chilling."],
+      "Fresh Fruit": ["Top with fresh fruit before serving."],
+      "Yogurt Top": ["Spread a light top layer over the finished cups."]
+    },
+    creami: [
+      "Add 80–100ml extra almond milk and 1g xanthan gum.",
+      "Blend smooth, freeze flat, then spin for a pudding-style frozen pint.",
+      "Use the selected swirl after the final spin for a layered spoonable texture."
+    ]
+  },
+  {
+    category: "Donuts",
+    name: "Base Protein Donuts",
+    clientName: "Base Protein Donuts",
+    servings: 6,
+    base: [["whey isolate", 30], ["oat flour", 35], ["egg whites", 140], ["almond milk unsweetened", 60], ["baking powder", 5], ["zero-cal sweetener", 8], ["vanilla extract", 2]],
+    method: [
+      "Preheat oven to 350°F and lightly grease a donut mold.",
+      "Whisk dry ingredients together.",
+      "Whisk wet ingredients separately until smooth.",
+      "Combine and rest 2 minutes.",
+      "Add selected flavor ingredients.",
+      "Pipe or spoon into the mold about three-quarters full.",
+      "If using a core, place it centrally and cover lightly.",
+      "Bake 10–14 minutes and cool before removing."
+    ],
+    flavors: {
+      Vanilla: [["instant pudding sugar-free vanilla", 8]],
+      Chocolate: [["cocoa powder", 10]],
+      Cinnamon: [["cinnamon", 3]],
+      Biscoff: [["biscoff spread", 16]],
+      Blueberry: [["blueberries", 55]]
+    },
+    flavorHow: {
+      Vanilla: ["Whisk pudding mix into the dry ingredients."],
+      Chocolate: ["Whisk cocoa into the dry base before adding wet."],
+      Cinnamon: ["Whisk cinnamon into the base for an even spice profile."],
+      Biscoff: ["Warm slightly and fold in gently or reserve for glaze/swirl."],
+      Blueberry: ["Fold blueberries in gently at the end."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Core": [["greek yogurt nonfat", 35], ["pudding mix sugar-free cheesecake", 5]],
+      "Chocolate Ribbon": [["sugar-free syrup", 16], ["cocoa powder", 4]],
+      "Biscoff Core": [["biscoff spread", 18]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Core": ["Mix yogurt and cheesecake pudding until thick.", "Pipe a small amount into the center of each donut and cover lightly with batter."],
+      "Chocolate Ribbon": ["Mix syrup and cocoa until glossy and lightly swirl into the batter after piping."],
+      "Biscoff Core": ["Freeze small Biscoff portions and place them in the center before baking."]
+    },
+    toppings: {
+      None: [],
+      Glaze: [["greek yogurt nonfat", 30], ["zero-cal sweetener", 3]],
+      "Chocolate Glaze": [["greek yogurt nonfat", 25], ["cocoa powder", 4]],
+      "Cinnamon Sugar Top": [["cinnamon", 2], ["zero-cal sweetener", 2]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      Glaze: ["Mix until smooth and dip cooled donuts."],
+      "Chocolate Glaze": ["Whisk until smooth and spoon over cooled donuts."],
+      "Cinnamon Sugar Top": ["Sprinkle over warm donuts for best adhesion."]
+    },
+    creami: [
+      "Blend the donut base with 120ml extra almond milk.",
+      "Freeze and spin for a cake-donut ice cream base."
+    ]
+  },
+  {
+    category: "Pancakes",
+    name: "Base Protein Pancakes",
+    clientName: "Protein Pancakes",
+    servings: 4,
+    base: [["whey isolate", 30], ["oat flour", 40], ["egg whites", 120], ["almond milk unsweetened", 70], ["baking powder", 5], ["zero-cal sweetener", 6]],
+    method: [
+      "Whisk all ingredients until smooth.",
+      "Let batter rest 2 minutes.",
+      "Fold in selected flavor ingredients if needed.",
+      "Heat a nonstick pan over medium heat.",
+      "Pour batter and cook until bubbles form.",
+      "Flip and cook the second side until set.",
+      "Stack and add swirl/topping after cooking."
+    ],
+    flavors: {
+      Blueberry: [["blueberries", 60]],
+      Chocolate: [["cocoa powder", 10]],
+      Cinnamon: [["cinnamon", 3]],
+      Biscoff: [["biscoff spread", 14]],
+      PB: [["pb2", 14]]
+    },
+    flavorHow: {
+      Blueberry: ["Fold blueberries in at the end so they stay whole."],
+      Chocolate: ["Whisk cocoa directly into the batter."],
+      Cinnamon: ["Whisk cinnamon into the base."],
+      Biscoff: ["Whisk a little into the batter or reserve for filling between stacked pancakes."],
+      PB: ["Whisk PB2 into the batter. Add a small splash of milk if it thickens too much."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Layer": [["greek yogurt nonfat", 40], ["pudding mix sugar-free cheesecake", 4]],
+      "Chocolate Drizzle": [["sugar-free syrup", 16], ["cocoa powder", 4]],
+      "PB Center": [["pb2", 12], ["almond milk unsweetened", 8]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Layer": ["Mix yogurt and cheesecake pudding until thick, then spread between pancake layers."],
+      "Chocolate Drizzle": ["Whisk syrup and cocoa until smooth and drizzle between or over stacked pancakes."],
+      "PB Center": ["Mix PB2 and almond milk into a thick paste and spread between pancakes as a center layer."]
+    },
+    toppings: {
+      None: [],
+      Syrup: [["sugar-free syrup", 20]],
+      Fruit: [["strawberries", 60]],
+      "Yogurt Dollop": [["greek yogurt nonfat", 35]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      Syrup: ["Drizzle over the stack before serving."],
+      Fruit: ["Top with fruit right before eating."],
+      "Yogurt Dollop": ["Add a dollop on top of the stack for a thicker finish."]
+    },
+    creami: [
+      "Blend the pancake base with extra almond milk and freeze for a pancake-batter style pint."
+    ]
+  },
+  {
+    category: "Protein Bars",
+    name: "Base Protein Bars",
+    clientName: "Protein Bars",
+    servings: 6,
+    base: [["whey isolate", 40], ["oat flour", 40], ["pb2", 20], ["almond milk unsweetened", 40], ["zero-cal sweetener", 6]],
+    method: [
+      "Mix all ingredients into a thick dough.",
+      "Add selected flavor ingredients.",
+      "Press half the mixture into a lined container if using a center layer.",
+      "Build swirl/core if selected, then press the rest of the mixture over the top.",
+      "Smooth firmly and chill 1–2 hours.",
+      "Slice into bars."
+    ],
+    flavors: {
+      Chocolate: [["cocoa powder", 10]],
+      Biscoff: [["biscoff spread", 18]],
+      Vanilla: [["instant pudding sugar-free vanilla", 8]],
+      PB: [["pb2", 12]],
+      Cheesecake: [["pudding mix sugar-free cheesecake", 8]]
+    },
+    flavorHow: {
+      Chocolate: ["Whisk cocoa into the dry mix before adding liquid."],
+      Biscoff: ["Warm slightly and fold into the dough or reserve for a ribbon."],
+      Vanilla: ["Whisk pudding mix into the dry base."],
+      PB: ["Add extra PB2 into the dough for a stronger peanut flavor."],
+      Cheesecake: ["Whisk cheesecake pudding into the mix for a tangier flavor profile."]
+    },
+    swirls: {
+      None: [],
+      "Biscoff Center": [["biscoff spread", 20]],
+      "Chocolate Layer": [["cocoa powder", 6], ["almond milk unsweetened", 12]],
+      "Cheesecake Layer": [["greek yogurt nonfat", 40], ["pudding mix sugar-free cheesecake", 5]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Biscoff Center": ["Spread Biscoff in a thin middle layer, then press remaining bar mixture on top."],
+      "Chocolate Layer": ["Mix cocoa and milk into a spreadable paste and layer in the center."],
+      "Cheesecake Layer": ["Mix yogurt and cheesecake pudding until thick, then spread as the middle layer before topping with remaining bar mixture."]
+    },
+    toppings: {
+      None: [],
+      Chips: [["sugar-free chocolate chips", 15]],
+      Crumbs: [["graham crumbs", 12]],
+      Drizzle: [["sugar-free syrup", 15]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      Chips: ["Press into the top before chilling."],
+      Crumbs: ["Sprinkle onto the top layer and press lightly."],
+      Drizzle: ["Drizzle after slicing for a cleaner finish."]
+    },
+    creami: [
+      "Blend the bar base with extra almond milk for a dense cookie-bar ice cream base if desired."
+    ]
+  },
+  {
+    category: "Mug Cakes",
+    name: "Base Protein Mug Cake",
+    clientName: "Protein Mug Cake",
+    servings: 1,
+    base: [["whey isolate", 25], ["oat flour", 20], ["egg whites", 70], ["almond milk unsweetened", 30], ["baking powder", 3], ["zero-cal sweetener", 4]],
+    method: [
+      "Whisk all ingredients in a microwave-safe mug until smooth.",
+      "Add selected flavor ingredients.",
+      "If using a core, add half the batter first, place the core in the middle, then cover with remaining batter.",
+      "Microwave 45–75 seconds depending on thickness and microwave power.",
+      "Rest 1 minute before topping."
+    ],
+    flavors: {
+      Chocolate: [["cocoa powder", 8]],
+      Cinnamon: [["cinnamon", 2]],
+      PB: [["pb2", 12]],
+      Biscoff: [["biscoff spread", 12]],
+      Vanilla: [["instant pudding sugar-free vanilla", 6]]
+    },
+    flavorHow: {
+      Chocolate: ["Whisk cocoa into the base."],
+      Cinnamon: ["Whisk cinnamon into the base."],
+      PB: ["Whisk PB2 into the batter for a thicker cake."],
+      Biscoff: ["Warm slightly and stir in lightly for ribbons."],
+      Vanilla: ["Whisk pudding mix into the batter for a sweeter flavor."]
+    },
+    swirls: {
+      None: [],
+      "Chocolate Core": [["sugar-free chocolate chips", 12]],
+      "PB Core": [["pb2", 10], ["almond milk unsweetened", 6]],
+      "Cheesecake Swirl": [["greek yogurt nonfat", 25], ["pudding mix sugar-free cheesecake", 4]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Chocolate Core": ["Pile chips in the center after half the batter is in the mug, then cover."],
+      "PB Core": ["Mix PB2 and milk into a thick paste, spoon into the center, and cover with batter."],
+      "Cheesecake Swirl": ["Mix yogurt and cheesecake pudding, spoon on top, and lightly swirl before microwaving."]
+    },
+    toppings: {
+      None: [],
+      Syrup: [["sugar-free syrup", 12]],
+      "Yogurt Top": [["greek yogurt nonfat", 20]],
+      "Cookie Crumbs": [["graham crumbs", 8]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      Syrup: ["Drizzle immediately after cooking."],
+      "Yogurt Top": ["Top after a short rest so it does not melt fully."],
+      "Cookie Crumbs": ["Sprinkle over the top right before serving."]
+    },
+    creami: [
+      "Blend the mug cake base with extra almond milk and freeze for a cake-batter pint."
+    ]
+  },
+  {
+    category: "Skillets",
+    name: "Base Protein Skillet",
+    clientName: "Protein Skillet",
+    servings: 2,
+    base: [["whey isolate", 30], ["oat flour", 35], ["egg whites", 110], ["almond milk unsweetened", 45], ["baking powder", 4], ["zero-cal sweetener", 6]],
+    method: [
+      "Preheat oven-safe skillet or pan.",
+      "Mix dry ingredients, then whisk wet ingredients separately.",
+      "Combine until smooth and add selected flavor ingredients.",
+      "Pour into a greased skillet.",
+      "Add swirl or core if using.",
+      "Cook on low stovetop heat briefly, then finish in the oven or air fryer until set.",
+      "Top and serve warm."
+    ],
+    flavors: {
+      Chocolate: [["cocoa powder", 10]],
+      Blueberry: [["blueberries", 60]],
+      Cinnamon: [["cinnamon", 3]],
+      PB: [["pb2", 14]],
+      Biscoff: [["biscoff spread", 16]]
+    },
+    flavorHow: {
+      Chocolate: ["Whisk cocoa into the dry base."],
+      Blueberry: ["Fold blueberries in last."],
+      Cinnamon: ["Whisk cinnamon into the batter."],
+      PB: ["Whisk PB2 into the batter."],
+      Biscoff: ["Warm slightly and swirl in or reserve for the center."]
+    },
+    swirls: {
+      None: [],
+      "Cheesecake Center": [["greek yogurt nonfat", 35], ["pudding mix sugar-free cheesecake", 4]],
+      "Biscoff Core": [["biscoff spread", 18]],
+      "Chocolate Swirl": [["sugar-free syrup", 16], ["cocoa powder", 4]]
+    },
+    swirlBuild: {
+      None: ["No swirl or core selected."],
+      "Cheesecake Center": ["Place the cheesecake mixture in the middle of the skillet batter and lightly cover it."],
+      "Biscoff Core": ["Freeze a small Biscoff portion and place it in the center before finishing the top layer."],
+      "Chocolate Swirl": ["Drizzle the chocolate mixture through the top before cooking to create ribbon pockets."]
+    },
+    toppings: {
+      None: [],
+      Syrup: [["sugar-free syrup", 16]],
+      "Yogurt Top": [["greek yogurt nonfat", 25]],
+      Chips: [["sugar-free chocolate chips", 12]]
+    },
+    toppingHow: {
+      None: ["No topping selected."],
+      Syrup: ["Drizzle over the warm skillet."],
+      "Yogurt Top": ["Top after the skillet cools slightly."],
+      Chips: ["Sprinkle right after cooking for a partial melt."]
+    },
+    creami: [
+      "Blend the skillet base with extra almond milk and freeze for a baked-batter style pint."
+    ]
+  }
+];
+
+function scaleItems(items: Ingredient[], factor: number): Ingredient[] {
+  return items.map(([name, amt]) => {
+    const unit = db[name].unit;
+    if (unit === "unit") return [name, Math.max(1, Math.round(amt * factor))];
+    const val = Math.round(amt * factor * 10) / 10;
+    return [name, Number.isInteger(val) ? Math.trunc(val) : val];
+  });
+}
+
+function calcMacros(items: Ingredient[]): Macro {
+  return items.reduce(
+    (acc, [name, amt]) => {
+      const item = db[name];
+      acc.cal += item.cal * amt;
+      acc.p += item.p * amt;
+      acc.c += item.c * amt;
+      acc.f += item.f * amt;
+      return acc;
+    },
+    { cal: 0, p: 0, c: 0, f: 0 }
+  );
+}
+
+function addMacros(a: Macro, b: Macro): Macro {
+  return { cal: a.cal + b.cal, p: a.p + b.p, c: a.c + b.c, f: a.f + b.f };
+}
+
+function divideMacros(m: Macro, servings: number): Macro {
+  return { cal: m.cal / servings, p: m.p / servings, c: m.c / servings, f: m.f / servings };
+}
+
+function fmt(m: Macro) {
+  return `${Math.round(m.cal)} cal • P ${m.p.toFixed(1)}g • C ${m.c.toFixed(1)}g • F ${m.f.toFixed(1)}g`;
+}
+
+function ingredientLine([name, amt]: Ingredient) {
+  const unit = db[name].unit === "unit" ? "" : db[name].unit;
+  return `${amt}${unit} ${name}`.trim();
+}
+
+function makeSavedId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function exportBrandedHTML(
+  title: string,
+  goal: Goal,
+  servings: number,
+  totalMacros: Macro,
+  perServing: Macro,
+  flavor: string,
+  swirl: string,
+  topping: string,
+  baseList: Ingredient[],
+  flavorList: Ingredient[],
+  swirlList: Ingredient[],
+  toppingList: Ingredient[],
+  method: string[],
+  flavorHow: string[],
+  swirlHow: string[],
+  toppingHow: string[],
+  creami: string[]
+) {
+  const w = window.open("", "_blank", "width=900,height=1200");
+  if (!w) return;
+
+  const html = `
+  <html>
+    <head>
+      <title>${title}</title>
+      <style>
+        body{background:#090909;color:#f5efe0;font-family:Arial,sans-serif;padding:24px}
+        .wrap{max-width:900px;margin:0 auto}
+        .card{border:1px solid rgba(212,175,55,.35);border-radius:18px;padding:18px;margin-bottom:16px;background:#111}
+        h1,h2{color:#d4af37}
+        .pill{display:inline-block;padding:8px 12px;border:1px solid rgba(212,175,55,.35);border-radius:999px;margin:0 8px 8px 0}
+        ul,ol{line-height:1.6}
+        .small{color:#c6c0b2}
+      </style>
+    </head>
+    <body>
+      <div class="wrap">
+        <h1>${title}</h1>
+        <div class="small">Sclass Master Edition • ${goal}</div>
+
+        <div class="card">
+          <div class="pill">Flavor: ${flavor}</div>
+          <div class="pill">Swirl / Core: ${swirl}</div>
+          <div class="pill">Topping: ${topping}</div>
+          <div style="margin-top:8px">Per Serving: ${fmt(perServing)}</div>
+          <div class="small">Batch: ${fmt(totalMacros)} • Servings: ${servings}</div>
+        </div>
+
+        <div class="card"><h2>Base Ingredients</h2><ul>${baseList.map((x) => `<li>${ingredientLine(x)}</li>`).join("")}</ul></div>
+        <div class="card"><h2>Flavor Ingredients</h2><ul>${flavorList.length ? flavorList.map((x) => `<li>${ingredientLine(x)}</li>`).join("") : "<li>None</li>"}</ul></div>
+        <div class="card"><h2>Swirl / Core Ingredients</h2><ul>${swirlList.length ? swirlList.map((x) => `<li>${ingredientLine(x)}</li>`).join("") : "<li>None</li>"}</ul></div>
+        <div class="card"><h2>Topping Ingredients</h2><ul>${toppingList.length ? toppingList.map((x) => `<li>${ingredientLine(x)}</li>`).join("") : "<li>None</li>"}</ul></div>
+        <div class="card"><h2>Main Method</h2><ol>${method.map((x) => `<li>${x}</li>`).join("")}</ol></div>
+        <div class="card"><h2>Flavor Build Method</h2><ul>${flavorHow.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+        <div class="card"><h2>Swirl / Core Build Method</h2><ul>${swirlHow.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+        <div class="card"><h2>Topping Method</h2><ul>${toppingHow.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+        <div class="card"><h2>Ninja Creami Conversion</h2><ul>${creami.map((x) => `<li>${x}</li>`).join("")}</ul></div>
+      </div>
+    </body>
+  </html>`;
+
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+}
+
+export default function SclassRecipeAppFinal() {
+  const [goal, setGoal] = useState<Goal>("Lean");
+  const [category, setCategory] = useState("All");
+  const [query, setQuery] = useState("");
+  const [pack, setPack] = useState<string>("All Packs");
+  const [clientMode, setClientMode] = useState(false);
+  const [savedBuilds, setSavedBuilds] = useState<SavedBuild[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("sclass-saved-builds");
+      if (raw) setSavedBuilds(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("sclass-saved-builds", JSON.stringify(savedBuilds));
+  }, [savedBuilds]);
+
+  const filteredRecipes = useMemo(() => {
+    return recipes.filter((r) => {
+      const categoryMatch = category === "All" || r.category === category;
+      const q = query.toLowerCase();
+      const textMatch =
+        !q ||
+        r.name.toLowerCase().includes(q) ||
+        r.category.toLowerCase().includes(q) ||
+        Object.keys(r.flavors).some((f) => f.toLowerCase().includes(q));
+      return categoryMatch && textMatch;
+    });
+  }, [category, query]);
+
+  const categories = ["All", ...Array.from(new Set(recipes.map((r) => r.category)))];
+  const packOptions = ["All Packs", ...Object.keys(flavorPacks)];
+
+  return (
+    <div className="min-h-screen bg-neutral-950 text-white">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-8 md:px-8">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="overflow-hidden rounded-3xl border border-yellow-700/40 bg-[radial-gradient(circle_at_top_right,_rgba(212,175,55,0.16),_transparent_28%),linear-gradient(180deg,rgba(23,23,23,1),rgba(10,10,10,1))] shadow-2xl">
+            <div className="border-b border-yellow-700/20 px-5 py-6 sm:px-8 sm:py-8">
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+                <div className="max-w-3xl">
+                  <div className="mb-2 text-[11px] uppercase tracking-[0.35em] text-yellow-500">Sclass Master Edition</div>
+                  <h1 className="text-3xl font-bold leading-tight text-yellow-300 sm:text-4xl md:text-5xl">
+                    {clientMode ? "Client Recipe Builder" : "Final Recipe App"}
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-sm text-neutral-300 sm:text-base">
+                    Elite mobile-first recipe builder with dynamic macros, flavor packs, saved builds, branded export,
+                    and simple client mode.
+                  </p>
+
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <Badge icon={<BookOpen className="h-3.5 w-3.5" />} label="Cookbook Builder" />
+                    <Badge icon={<Wand2 className="h-3.5 w-3.5" />} label="Flavor Expansion" />
+                    <Badge icon={<Calculator className="h-3.5 w-3.5" />} label="Auto Macros" />
+                  </div>
+                </div>
+
+                <div className="grid w-full grid-cols-1 gap-3 sm:grid-cols-2 xl:min-w-[760px] xl:grid-cols-4">
+                  <ControlCard label="Goal">
+                    <AppSelect value={goal} onChange={(e) => setGoal(e.target.value as Goal)} options={Object.keys(goalMultipliers)} />
+                  </ControlCard>
+                  <ControlCard label="Category">
+                    <AppSelect value={category} onChange={(e) => setCategory(e.target.value)} options={categories} />
+                  </ControlCard>
+                  <ControlCard label="Flavor Pack">
+                    <AppSelect value={pack} onChange={(e) => setPack(e.target.value)} options={packOptions} />
+                  </ControlCard>
+                  <ControlCard label="Search">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+                      <input
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        placeholder="Flavor or recipe"
+                        className="h-12 w-full rounded-2xl border border-yellow-700/40 bg-neutral-900 pl-10 pr-4 text-white outline-none transition focus:border-yellow-500"
+                      />
+                    </div>
+                  </ControlCard>
+
+                  <div className="sm:col-span-2 xl:col-span-4">
+                    <div className="flex items-center justify-between rounded-2xl border border-yellow-700/30 bg-neutral-900 p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl bg-yellow-500/10 p-2 text-yellow-400">
+                          <Users className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs text-neutral-400">Mode</div>
+                          <div className="text-sm font-medium text-yellow-300">{clientMode ? "Client" : "Coach"}</div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setClientMode((v) => !v)}
+                        className={`relative h-8 w-16 rounded-full border transition ${
+                          clientMode ? "border-yellow-500 bg-yellow-500/20" : "border-neutral-700 bg-neutral-800"
+                        }`}
+                        aria-label="Toggle mode"
+                      >
+                        <span
+                          className={`absolute top-1 h-6 w-6 rounded-full bg-yellow-400 transition ${
+                            clientMode ? "left-9" : "left-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className={`mt-6 grid gap-6 ${clientMode ? "grid-cols-1" : "grid-cols-1 xl:grid-cols-[minmax(0,3fr)_minmax(290px,1fr)]"}`}>
+          <div className="space-y-6">
+            {filteredRecipes.map((recipe, idx) => (
+              <RecipeCard
+                key={recipe.name}
+                recipe={recipe}
+                goal={goal}
+                pack={pack}
+                index={idx}
+                clientMode={clientMode}
+                savedBuilds={savedBuilds}
+                setSavedBuilds={setSavedBuilds}
+              />
+            ))}
+          </div>
+
+          {!clientMode && (
+            <aside className="space-y-6">
+              <Panel title="Saved Builds" icon={<Save className="h-5 w-5" />}>
+                <div className="space-y-3">
+                  {savedBuilds.length === 0 ? (
+                    <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/60 p-4 text-sm text-neutral-400">
+                      No saved builds yet.
+                    </div>
+                  ) : (
+                    savedBuilds.map((build) => (
+                      <div key={build.id} className="rounded-2xl border border-yellow-700/20 bg-neutral-900/70 p-3">
+                        <div className="text-sm font-semibold text-yellow-300">{build.customName || build.recipeName}</div>
+                        <div className="mt-1 text-xs text-neutral-400">
+                          {build.goal} • {build.flavor} • {build.swirl} • {build.topping}
+                        </div>
+                        <button
+                          onClick={() => setSavedBuilds((prev) => prev.filter((x) => x.id !== build.id))}
+                          className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-800/40 bg-neutral-950 px-3 py-2 text-sm text-white transition hover:border-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Panel>
+            </aside>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RecipeCard({
+  recipe,
+  goal,
+  pack,
+  index,
+  clientMode,
+  savedBuilds,
+  setSavedBuilds,
+}: {
+  recipe: Recipe;
+  goal: Goal;
+  pack: string;
+  index: number;
+  clientMode: boolean;
+  savedBuilds: SavedBuild[];
+  setSavedBuilds: React.Dispatch<React.SetStateAction<SavedBuild[]>>;
+}) {
+  const factor = goalMultipliers[goal];
+
+  const scaledBase = useMemo(() => scaleItems(recipe.base, factor), [recipe, factor]);
+  const scaledFlavors = useMemo(
+    () => Object.fromEntries(Object.entries(recipe.flavors).map(([k, v]) => [k, scaleItems(v, factor)])),
+    [recipe, factor]
+  );
+  const scaledSwirls = useMemo(
+    () => Object.fromEntries(Object.entries(recipe.swirls).map(([k, v]) => [k, scaleItems(v, factor)])),
+    [recipe, factor]
+  );
+  const scaledToppings = useMemo(
+    () => Object.fromEntries(Object.entries(recipe.toppings).map(([k, v]) => [k, scaleItems(v, factor)])),
+    [recipe, factor]
+  );
+
+  const packFlavors = pack !== "All Packs" ? flavorPacks[pack] : {};
+
+  const mergedFlavors = {
+    ...scaledFlavors,
+    ...Object.fromEntries(Object.entries(commonFlavors).map(([k, v]) => [k, scaleItems(v, factor)])),
+    ...Object.fromEntries(Object.entries(packFlavors).map(([k, v]) => [k, scaleItems(v, factor)])),
+  };
+  const mergedSwirls = {
+    ...scaledSwirls,
+    ...Object.fromEntries(Object.entries(commonSwirls).map(([k, v]) => [k, scaleItems(v, factor)])),
+  };
+  const mergedToppings = {
+    ...scaledToppings,
+    ...Object.fromEntries(Object.entries(commonToppings).map(([k, v]) => [k, scaleItems(v, factor)])),
+  };
+
+  const flavorKeys = Object.keys(mergedFlavors);
+  const swirlKeys = Object.keys(mergedSwirls);
+  const toppingKeys = Object.keys(mergedToppings);
+
+  const [flavor, setFlavor] = useState(flavorKeys[0]);
+  const [swirl, setSwirl] = useState(swirlKeys[0]);
+  const [topping, setTopping] = useState(toppingKeys[0]);
+  const [saveName, setSaveName] = useState("");
+
+  useEffect(() => {
+    if (!flavorKeys.includes(flavor)) setFlavor(flavorKeys[0]);
+  }, [pack, goal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!swirlKeys.includes(swirl)) setSwirl(swirlKeys[0]);
+    if (!toppingKeys.includes(topping)) setTopping(toppingKeys[0]);
+  }, [goal]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const baseList = scaledBase;
+  const flavorList = mergedFlavors[flavor] || [];
+  const swirlList = mergedSwirls[swirl] || [];
+  const toppingList = mergedToppings[topping] || [];
+
+  const baseMacros = calcMacros(baseList);
+  const flavorMacros = calcMacros(flavorList);
+  const swirlMacros = calcMacros(swirlList);
+  const toppingMacros = calcMacros(toppingList);
+  const totalMacros = addMacros(addMacros(addMacros(baseMacros, flavorMacros), swirlMacros), toppingMacros);
+
+  const detailTitle = clientMode ? recipe.clientName : recipe.name;
+
+  const saveBuild = () => {
+    const newBuild: SavedBuild = {
+      id: makeSavedId(),
+      customName: saveName.trim() || `${recipe.clientName} Build`,
+      recipeName: recipe.name,
+      goal,
+      flavor,
+      swirl,
+      topping,
+    };
+    setSavedBuilds([newBuild, ...savedBuilds]);
+    setSaveName("");
+  };
+
+  const exportBranded = () =>
+    exportBrandedHTML(
+      detailTitle,
+      goal,
+      recipe.servings,
+      totalMacros,
+      divideMacros(totalMacros, recipe.servings),
+      flavor,
+      swirl,
+      topping,
+      baseList,
+      flavorList,
+      swirlList,
+      toppingList,
+      recipe.method,
+      recipe.flavorHow?.[flavor] || ["Add the selected flavor as listed in the ingredients section."],
+      recipe.swirlBuild?.[swirl] || ["Build the selected swirl or core as listed."],
+      recipe.toppingHow?.[topping] || ["Apply topping as desired."],
+      recipe.creami
+    );
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.025 }}>
+      <div className="overflow-hidden rounded-3xl border border-yellow-700/35 bg-neutral-950 shadow-xl">
+        <div className="border-b border-yellow-700/20 bg-gradient-to-r from-yellow-900/10 to-transparent p-5 sm:p-6">
+          <div className="mb-2 text-[10px] uppercase tracking-[0.28em] text-yellow-500">{recipe.category}</div>
+          <div className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-yellow-300">{detailTitle}</h2>
+              <div className="mt-1 text-sm text-neutral-400">Servings: {recipe.servings}</div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <AppSelect value={flavor} onChange={(e) => setFlavor(e.target.value)} options={flavorKeys} />
+              <AppSelect value={swirl} onChange={(e) => setSwirl(e.target.value)} options={swirlKeys} />
+              <AppSelect value={topping} onChange={(e) => setTopping(e.target.value)} options={toppingKeys} />
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6 p-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard title="Base Batch" value={fmt(baseMacros)} icon={<ChefHat className="h-4 w-4" />} />
+            <StatCard title="Final Batch" value={fmt(totalMacros)} icon={<Sparkles className="h-4 w-4" />} />
+            <StatCard title="Per Serving" value={fmt(divideMacros(totalMacros, recipe.servings))} icon={<Calculator className="h-4 w-4" />} />
+            <StatCard title="Build" value={`${flavor} • ${swirl} • ${topping}`} icon={<Layers3 className="h-4 w-4" />} />
+          </div>
+
+          <div className="rounded-2xl border border-yellow-700/30 bg-yellow-500/10 p-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <input
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                placeholder="Name this build"
+                className="h-12 rounded-2xl border border-yellow-700/40 bg-neutral-900 px-4 text-white outline-none transition focus:border-yellow-500"
+              />
+              <button
+                onClick={saveBuild}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-yellow-500 px-5 font-semibold text-black transition hover:bg-yellow-400"
+              >
+                <Save className="h-4 w-4" />
+                Save Build
+              </button>
+              <button
+                onClick={exportBranded}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-yellow-700/40 bg-neutral-950 px-5 text-white transition hover:border-yellow-500"
+              >
+                <Download className="h-4 w-4" />
+                Branded Export
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <Panel title="Ingredients Breakdown">
+              <div className="space-y-3 text-sm">
+                <IngredientGroup title="Base" items={baseList} />
+                <IngredientGroup title={`Flavor (${flavor})`} items={flavorList} />
+                <IngredientGroup title={`Swirl / Core (${swirl})`} items={swirlList} />
+                <IngredientGroup title={`Topping (${topping})`} items={toppingList} />
+              </div>
+            </Panel>
+
+            <Panel title="Build Deltas">
+              <div className="space-y-3 text-sm">
+                <DeltaRow label={`Flavor: ${flavor}`} batch={fmt(flavorMacros)} per={fmt(divideMacros(flavorMacros, recipe.servings))} />
+                <DeltaRow label={`Swirl / Core: ${swirl}`} batch={fmt(swirlMacros)} per={fmt(divideMacros(swirlMacros, recipe.servings))} />
+                <DeltaRow label={`Topping: ${topping}`} batch={fmt(toppingMacros)} per={fmt(divideMacros(toppingMacros, recipe.servings))} />
+              </div>
+            </Panel>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <Panel title="Main Method">
+              <ol className="list-decimal space-y-3 pl-5 text-sm text-neutral-200">
+                {recipe.method.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </Panel>
+
+            <div className="space-y-6">
+              <Panel title="Flavor Build Method">
+                <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
+                  {(recipe.flavorHow?.[flavor] || ["Add the selected flavor as listed in the ingredients section."]).map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+              </Panel>
+
+              <Panel title="Swirl / Core Build Method">
+                <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
+                  {(recipe.swirlBuild?.[swirl] || ["Build the selected swirl or core as listed."]).map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+              </Panel>
+
+              <Panel title="Topping Method">
+                <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
+                  {(recipe.toppingHow?.[topping] || ["Apply topping as desired."]).map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+              </Panel>
+
+              <Panel title="Ninja Creami Conversion" icon={<IceCreamBowl className="h-4 w-4" />}>
+                <ul className="list-disc space-y-3 pl-5 text-sm text-neutral-200">
+                  {recipe.creami.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ul>
+              </Panel>
+            </div>
+          </div>
+
+          {clientMode && (
+            <div className="rounded-2xl border border-yellow-700/30 bg-yellow-500/10 p-4 text-sm text-neutral-200">
+              <div className="mb-2 font-semibold text-yellow-300">Simple client instructions</div>
+              <p>1. Pick recipe → flavor → swirl/core → topping</p>
+              <p>2. Follow BASE ingredients first</p>
+              <p>3. Add FLAVOR ingredients</p>
+              <p>4. Build SWIRL/CORE exactly as instructed</p>
+              <p>5. Apply TOPPING after cooking</p>
+              <p>6. Use per-serving macros</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function Panel({
+  title,
+  children,
+  icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/60">
+      <div className="border-b border-yellow-700/15 px-4 py-3">
+        <div className="flex items-center gap-2 text-lg font-semibold text-yellow-300">
+          {icon}
+          {title}
+        </div>
+      </div>
+      <div className="p-4">{children}</div>
+    </div>
+  );
+}
+
+function ControlCard({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-2 text-xs text-neutral-400">{label}</div>
+      {children}
+    </div>
+  );
+}
+
+function AppSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: React.ChangeEventHandler<HTMLSelectElement>;
+  options: string[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className="h-12 w-full rounded-2xl border border-yellow-700/40 bg-neutral-900 px-4 text-white outline-none transition focus:border-yellow-500"
+    >
+      {options.map((opt) => (
+        <option key={opt} value={opt} className="bg-neutral-900">
+          {opt}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function Badge({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-yellow-700/30 bg-neutral-900/80 px-3 py-1.5 text-xs text-neutral-200">
+      <span className="text-yellow-400">{icon}</span>
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon }: { title: string; value: string; icon: React.ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-yellow-700/20 bg-neutral-900/70 p-4">
+      <div className="mb-2 flex items-center gap-2 text-sm text-yellow-300">
+        {icon}
+        <span>{title}</span>
+      </div>
+      <div className="break-words text-sm font-medium leading-relaxed text-neutral-100 sm:text-base">{value}</div>
+    </div>
+  );
+}
+
+function IngredientGroup({ title, items }: { title: string; items: Ingredient[] }) {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-yellow-700/20 p-3">
+      <div className="mb-2 font-semibold text-yellow-300">{title}</div>
+      <ul className="space-y-1 text-neutral-200">
+        {items.map((item, i) => (
+          <li key={`${title}-${i}`}>{ingredientLine(item)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DeltaRow({ label, batch, per }: { label: string; batch: string; per: string }) {
+  return (
+    <div className="rounded-2xl border border-yellow-700/20 bg-neutral-950/70 p-3">
+      <div className="mb-2 font-medium text-yellow-300">{label}</div>
+      <div className="text-neutral-300">Batch: {batch}</div>
+      <div className="mt-1 text-neutral-400">Per serving: {per}</div>
+    </div>
+  );
+}
